@@ -5,8 +5,8 @@
 .terraform.lock.hcl
 
 # Node.js
-node_modules/
-.env
+#node_modules/
+#.env
 
 # OS + Editor junk
 .DS_Store
