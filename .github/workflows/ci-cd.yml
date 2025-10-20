@@ -42,6 +42,11 @@ jobs:
           docker build -t $IMAGE_URI hello-docker-node
           docker push $IMAGE_URI
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.7
+
       - name: Terraform Plan
         working-directory: infra
         env:
