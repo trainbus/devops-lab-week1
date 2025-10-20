@@ -10,15 +10,14 @@ data "aws_security_group" "app_sg" {
   }
 }
 
-resource "aws_iam_instance_profile" "app_profile" {
+data "aws_iam_instance_profile" "app_profile" {
   name = "devopslab-instance-profile"
-  role = "DevOpsLabEC2Role"
 }
-
 resource "aws_instance" "app" {
   ami             = "ami-04a81a99f5ec58529" # Ubuntu 22.04 LTS us-east-1
   instance_type   = "t2.micro"
   key_name        = var.key_name
+  iam_instance_profile        = "devopslab-instance-profile"
   security_groups = [data.aws_security_group.app_sg.name]
   user_data = <<-EOF
               #!/bin/bash
