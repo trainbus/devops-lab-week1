@@ -19,9 +19,7 @@ resource "aws_instance" "app" {
   ami             = "ami-04a81a99f5ec58529" # Ubuntu 22.04 LTS us-east-1
   instance_type   = "t2.micro"
   key_name        = var.key_name
-  iam_instance_profile = aws_iam_instance_profile.app_profile.name
   security_groups = [data.aws_security_group.app_sg.name]
-
   user_data = <<-EOF
               #!/bin/bash
               exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
