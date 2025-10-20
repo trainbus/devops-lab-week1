@@ -18,18 +18,33 @@ resource "aws_instance" "app" {
 
   user_data = <<-EOF
               #!/bin/bash
-              exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+              exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
+
+              echo "Starting EC2 provisioning..."
 
               apt-get update -y
-              apt-get install -y docker.io awscli
+              apt-get install -y ca-certificates curl gnupg unzip
+
+              # Install Docker from Docker's official repo
+              install -m 0755 -d /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              echo \
+                "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+                noble stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+              apt-get update -y
+              apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
               systemctl start docker
               systemctl enable docker
 
-              # Login to ECR
-              aws ecr get-login-password --region ${var.aws_region} | \
-              docker login --username AWS --password-stdin ${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com
+              # Install AWS CLI v2
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              unzip awscliv2.zip
+              ./aws/install
 
-              sleep 10
+              # Login to ECR
+              /usr/local/bin/aws ecr get-login-password --region ${var.aws_region} | \
+              docker login --username AWS --password-stdin ${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com
 
               # Retry Docker pull
               for i in {1..5}; do
@@ -39,6 +54,8 @@ resource "aws_instance" "app" {
 
               # Run container
               docker run -d -p 3000:3000 ${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.ecr_repo}:latest
+
+              echo "Provisioning complete."
   EOF
 
   tags = {
