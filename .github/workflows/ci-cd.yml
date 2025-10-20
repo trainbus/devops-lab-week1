@@ -2,8 +2,9 @@ name: Node.js Docker CI/CD
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
+    paths:
+      - "infra/**"
 
 jobs:
   build-and-deploy:
@@ -19,9 +20,11 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
+        working-directory: hello-docker-node
         run: npm install
 
       - name: Lint / Test
+        working-directory: hello-docker-node
         run: npm test || echo "No tests configured"
 
       - name: Login to AWS ECR
@@ -30,8 +33,21 @@ jobs:
       - name: Build Docker image
         run: |
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
-          docker build -t $IMAGE_URI .
+          docker build -t $IMAGE_URI hello-docker-node
           docker push $IMAGE_URI
+
+      - name: Terraform Plan
+        working-directory: infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          terraform init
+          terraform plan \
+            -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
+            -var="ecr_repo=${{ secrets.ECR_REPO }}" \
+            -var="key_name=${{ secrets.EC2_KEY_NAME }}" \
+            -var="aws_region=${{ secrets.AWS_REGION }}"
 
       - name: Deploy with Terraform
         working-directory: infra
@@ -39,7 +55,6 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          terraform init
           terraform apply -auto-approve \
             -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
             -var="ecr_repo=${{ secrets.ECR_REPO }}" \
