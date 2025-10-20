@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  build-and-deploy nodejs-docker-ecr-terraform:
     runs-on: ubuntu-latest
 
     steps:
@@ -35,6 +35,8 @@ jobs:
 
       - name: Login to AWS ECR
         uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: true
 
       - name: Build Docker image
         run: |
