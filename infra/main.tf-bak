@@ -16,10 +16,8 @@ resource "aws_instance" "app" {
   key_name        = var.key_name
   security_groups = [data.aws_security_group.app_sg.name]
 
-  user_data = <<-EOF
+user_data = <<-EOF
               #!/bin/bash
-              exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-
               apt-get update -y
               apt-get install -y docker.io awscli
               systemctl start docker
@@ -28,20 +26,18 @@ resource "aws_instance" "app" {
               # Login to ECR
               aws ecr get-login-password --region ${var.aws_region} | \
               docker login --username AWS --password-stdin ${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com
+              
 
+              # Wait for Docker to initialize
               sleep 10
 
-              # Retry Docker pull
-              for i in {1..5}; do
-                docker pull ${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.ecr_repo}:latest && break
-                sleep 5
-              done
 
-              # Run container
+              # Pull & run the container
               docker run -d -p 3000:3000 ${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.ecr_repo}:latest
-  EOF
+EOF
 
   tags = {
     Name = "DevOpsLabApp"
   }
 }
+
