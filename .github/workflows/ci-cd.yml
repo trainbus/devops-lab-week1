@@ -2,9 +2,8 @@ name: Node.js Docker CI/CD
 
 on:
   push:
-    branches: [ "main" ]
-    paths:
-      - "infra/**"
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
