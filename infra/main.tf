@@ -1,10 +1,26 @@
+data "aws_security_group" "app_sg" {
+  filter {
+    name   = "group-name"
+    values = ["app-sg"]
+  }
+
+  filter {
+    name   = "vpc-id"
+    values = ["vpc-0eb5fc6c2f99e5267"]
+  }
+}
+
+resource "aws_iam_instance_profile" "app_profile" {
+  name = "devopslab-instance-profile"
+  role = "DevOpsLabEC2Role"
+}
+
 resource "aws_instance" "app" {
-  ami                         = "ami-04a81a99f5ec58529" # Ubuntu 22.04 LTS us-east-1
-  instance_type               = "t2.micro"
-  key_name                    = var.key_name
-  security_groups             = [data.aws_security_group.app_sg.name]
-  iam_instance_profile        = "devopslab-instance-profile" # Replace with your actual IAM instance profile name
-  user_data_replace_on_change = true
+  ami             = "ami-04a81a99f5ec58529" # Ubuntu 22.04 LTS us-east-1
+  instance_type   = "t2.micro"
+  key_name        = var.key_name
+  iam_instance_profile = aws_iam_instance_profile.app_profile.name
+  security_groups = [data.aws_security_group.app_sg.name]
 
   user_data = <<-EOF
               #!/bin/bash
