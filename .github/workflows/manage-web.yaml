@@ -1,0 +1,36 @@
+name: Manage Onwuachi Web Server
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Choose action (start, stop, upgrade)"
+        required: true
+        default: "start"
+        type: choice
+        options:
+          - start
+          - stop
+          - upgrade
+
+jobs:
+  manage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/onwua_key.pem
+          chmod 600 ~/.ssh/onwua_key.pem
+
+      - name: Run selected action
+        run: |
+          case "${{ github.event.inputs.action }}" in
+            start) bash scripts/start-web.sh ;;
+            stop) bash scripts/stop-web.sh ;;
+            upgrade) bash scripts/upgrade-web.sh ;;
+          esac
+
