@@ -32,4 +32,5 @@ jobs:
             start) bash scripts/start-web.sh "${{ secrets.EC2_PUBLIC_IP }}" ;;
             stop) bash scripts/stop-web.sh "${{ secrets.EC2_PUBLIC_IP }}" ;;
             upgrade) bash scripts/upgrade-web.sh "${{ secrets.EC2_PUBLIC_IP }}" ;;
+            *) echo "Invalid action: ${{ github.event.inputs.action }}" ; exit 1 ;;
           esac
