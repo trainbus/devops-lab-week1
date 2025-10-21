@@ -27,6 +27,8 @@ jobs:
           chmod 600 ~/.ssh/onwua_key.pem
 
       - name: Run selected action
+        env:
+          EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
         run: |
           case "${{ github.event.inputs.action }}" in
             start) bash scripts/start-web.sh ;;
