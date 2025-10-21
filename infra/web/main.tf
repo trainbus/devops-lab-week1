@@ -10,6 +10,10 @@ data "aws_security_group" "web_sg" {
   }
 }
 
+data "aws_iam_instance_profile" "app_profile" {
+  name = "devopslab-instance-profile"
+}
+
 resource "aws_instance" "web" {
   ami           = "ami-04a81a99f5ec58529" # Ubuntu 22.04 LTS us-east-1
   instance_type = "t3.micro"
