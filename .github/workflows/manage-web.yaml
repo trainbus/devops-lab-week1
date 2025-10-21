@@ -27,14 +27,9 @@ jobs:
           chmod 600 ~/.ssh/onwua_key.pem
 
       - name: Run selected action
-        env:
-          EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
         run: |
-          ACTION="${{ github.event.inputs.action }}"
-          case "$ACTION" in
-            start) bash scripts/start-web.sh ;;
-            stop) bash scripts/stop-web.sh ;;
-            upgrade) bash scripts/upgrade-web.sh ;;
-            *) echo "Invalid action: $ACTION" ; exit 1 ;;
+          case "${{ github.event.inputs.action }}" in
+            start) bash scripts/start-web.sh "${{ secrets.EC2_PUBLIC_IP }}" ;;
+            stop) bash scripts/stop-web.sh "${{ secrets.EC2_PUBLIC_IP }}" ;;
+            upgrade) bash scripts/upgrade-web.sh "${{ secrets.EC2_PUBLIC_IP }}" ;;
           esac
-           
