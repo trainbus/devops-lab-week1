@@ -15,6 +15,7 @@ resource "aws_instance" "web" {
   instance_type = "t3.micro"
   key_name      = var.key_name
   security_groups = [data.aws_security_group.web_sg.name]
+  iam_instance_profile        = data.aws_iam_instance_profile.app_profile.name
 
   user_data = <<-EOF
               #!/bin/bash
