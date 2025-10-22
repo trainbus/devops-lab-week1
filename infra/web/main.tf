@@ -39,6 +39,9 @@ resource "aws_instance" "web" {
               unzip awscliv2.zip
               ./aws/install
 
+              # Add AWS CLI to PATH
+              export PATH=$PATH:/usr/local/bin
+
               # Enable and start services
               systemctl enable haproxy nginx
               systemctl start nginx
