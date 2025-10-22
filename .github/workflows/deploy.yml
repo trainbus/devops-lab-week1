@@ -33,8 +33,12 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ./infra
-        run: terraform plan
+        run: terraform plan \
+          -var="key_name=${{ secrets.EC2_KEY_NAME }}"
+
 
       - name: Terraform Apply
         working-directory: ./infra
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve \
+          -var="key_name=${{ secrets.EC2_KEY_NAME }}"
+

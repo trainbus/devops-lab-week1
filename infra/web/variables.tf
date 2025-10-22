@@ -6,5 +6,5 @@ variable "aws_region" {
 variable "key_name" {
   description = "EC2 key pair name for SSH access"
   type        = string
+  default     = "onwua_key"
 }
-
