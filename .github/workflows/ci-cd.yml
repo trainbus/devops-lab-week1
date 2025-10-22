@@ -1,9 +1,13 @@
 name: Node.js Docker CI/CD
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
+      - prod
+    paths-ignore:
+      - '.github/workflows/manage-web-bak-ignorefile.yml'
 
 jobs:
   build-and-deploy-nodejs-docker-ecr-terraform:
