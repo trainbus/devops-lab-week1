@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
       - prod
     paths-ignore:
       - '.github/workflows/manage-web-bak-ignorefile.yml'
