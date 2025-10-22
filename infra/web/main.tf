@@ -15,22 +15,36 @@ data "aws_iam_instance_profile" "app_profile" {
 }
 
 resource "aws_instance" "web" {
-  ami           = "ami-04a81a99f5ec58529" # Ubuntu 22.04 LTS us-east-1
-  instance_type = "t3.micro"
-  key_name      = var.key_name
-  security_groups = [data.aws_security_group.web_sg.name]
-  iam_instance_profile        = data.aws_iam_instance_profile.app_profile.name
+  ami                    = "ami-04a81a99f5ec58529" # Ubuntu 24.04 LTS us-east-1
+  instance_type          = "t3.micro"
+  key_name               = var.key_name
+  security_groups        = [data.aws_security_group.web_sg.name]
+  iam_instance_profile   = data.aws_iam_instance_profile.app_profile.name
 
   user_data = <<-EOF
               #!/bin/bash
+              exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
+              set -x
+
               apt-get update -y
-              apt-get install -y haproxy nginx certbot python3-certbot-nginx awscli
+              apt-get install -y software-properties-common curl unzip gnupg
+
+              # Add universe repo and install packages
+              add-apt-repository universe
+              apt-get update -y
+              apt-get install -y haproxy nginx python3-certbot-nginx
+
+              # Install AWS CLI v2
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              unzip awscliv2.zip
+              ./aws/install
 
               # Enable and start services
               systemctl enable haproxy nginx
               systemctl start nginx
 
               # Configure HAProxy
+              mkdir -p /etc/haproxy
               cat <<EOL > /etc/haproxy/haproxy.cfg
               global
                 log /dev/log local0
@@ -76,13 +90,11 @@ resource "aws_instance" "web" {
 
               # Wait for DNS before SSL
               sleep 60
-              certbot certonly --nginx -d onwuachi.com -d www.onwuachi.com --non-interactive --agree-tos -m admin@onwuachi.com
+              certbot certonly --nginx -d onwuachi.com -d www.onwuachi.com --non-interactive --agree-tos -m admin@onwuachi.com || echo "Certbot failed"
               systemctl reload haproxy
   EOF
 
   tags = {
-    Name = "OnwuachiWebServer"
+    Name = var.ec2_name
   }
 }
-
-
