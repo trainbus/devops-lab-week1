@@ -81,7 +81,7 @@ resource "aws_instance" "web" {
   EOF
 
   tags = {
-    Name = "OnwuachiWebServer"
+    Name = "var.ec2_name"
   }
 }
 

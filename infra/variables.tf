@@ -13,3 +13,9 @@ variable "image_tag" {
   description = "Tag of the Docker image to deploy"
   type        = string
 }
+
+variable "ec2_name" {
+  description = "Name tag for the EC2 instance"
+  type        = string
+  default     = "DefaultEC2Name"
+}
