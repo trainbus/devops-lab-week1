@@ -9,3 +9,8 @@ variable "key_name" {
   default     = "onwua_key"
 }
 
+variable "ec2_name" {
+  description = "Name tag for the EC2 instance"
+  type        = string
+  default     = "OnwuachiWebServer"
+}
