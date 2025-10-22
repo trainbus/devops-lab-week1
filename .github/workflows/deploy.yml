@@ -2,10 +2,10 @@ name: CICD - Deploy Infra with Terraform
 
 on:
   workflow_dispatch:  # manual trigger
-  push:
-    branches: [ "main" ]
-    paths:
-      - "infra/**"
+#  push:
+#    branches: [ "main" ]
+#    paths:
+#      - "infra/**"
 
 jobs:
   deploy:
