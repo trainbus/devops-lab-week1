@@ -28,6 +28,9 @@ jobs:
 
       - name: Run selected action
         run: |
+          # Disable strict host key checking (for GitHub runner)
+          echo "StrictHostKeyChecking no" >> ~/.ssh/config
+
           case "${{ github.event.inputs.action }}" in
             start) bash scripts/start-web.sh "${{ secrets.EC2_PUBLIC_IP }}" ;;
             stop) bash scripts/stop-web.sh "${{ secrets.EC2_PUBLIC_IP }}" ;;
