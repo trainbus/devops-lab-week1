@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - prod
+      - main 
     paths-ignore:
       - '.github/workflows/manage-web-bak-ignorefile.yml'
 
@@ -41,11 +42,16 @@ jobs:
         with:
           mask-password: true
 
-      - name: Build Docker image
+      - name: Set image tag with timestamp
+        run: echo "IMAGE_TAG=node-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Build and push Docker image
         run: |
-          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
-          docker build -t $IMAGE_URI hello-docker-node
-          docker push $IMAGE_URI
+          IMAGE_REPO=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}
+          docker build -t $IMAGE_REPO:$IMAGE_TAG hello-docker-node
+          docker tag $IMAGE_REPO:$IMAGE_TAG $IMAGE_REPO:latest
+          docker push $IMAGE_REPO:$IMAGE_TAG
+          docker push $IMAGE_REPO:latest
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -72,6 +78,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           terraform apply -auto-approve \
+            -var="image_tag=$IMAGE_TAG" \
             -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
             -var="ecr_repo=${{ secrets.ECR_REPO }}" \
             -var="key_name=${{ secrets.EC2_KEY_NAME }}" \
