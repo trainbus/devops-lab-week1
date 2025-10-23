@@ -48,9 +48,10 @@ jobs:
         id: tf_output
         working-directory: ./infra/web
         run: |
-          terraform output web_public_ip
-          terraform output -raw web_public_ip > web_ip.txt
-          echo "web_ip=$(terraform output -raw web_public_ip)" >> $GITHUB_ENV
+           set -e
+           IP=$(terraform output -raw web_public_ip)
+           echo "Web Server Public IP: $IP"
+           echo "web_ip=$IP" >> $GITHUB_ENV
 
       - name: Update GitHub Secret with EC2 Public IP
         working-directory: ./infra/web
@@ -70,4 +71,11 @@ jobs:
       - name: Display Deployment Info
         run: |
           echo "✅ Deployment complete!"
-          echo "🌍 Public IP: ${{ env.web_ip }}"
+          echo "🌍 Public IP: $web_ip"
+          
+      - name: Validate Web IP
+        run: |
+          if ! echo "$web_ip" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "❌ Invalid IP format: $web_ip"
+            exit 1
+          fi
