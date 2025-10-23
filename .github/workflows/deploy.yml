@@ -49,7 +49,7 @@ jobs:
         working-directory: ./infra/web
         run: |
            set -e
-           IP=$(terraform output -raw web_ip)
+           IP=$(terraform output -raw web_public_ip)
            echo "web_ip=$IP" >> $GITHUB_ENV
            echo "web_ip: $IP"
 
