@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - prod 
+      - prod
     paths-ignore:
       - '.github/workflows/manage-web-bak-ignorefile.yml'
 
@@ -46,6 +46,7 @@ jobs:
 
       - name: Build and push Docker image
         run: |
+          set -e
           IMAGE_REPO=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}
           docker build -t $IMAGE_REPO:$IMAGE_TAG hello-docker-node
           docker tag $IMAGE_REPO:$IMAGE_TAG $IMAGE_REPO:latest
@@ -57,28 +58,14 @@ jobs:
         with:
           terraform_version: 1.5.7
 
+      - name: Terraform Validate
+        working-directory: infra
+        run: terraform validate
+
       - name: Terraform Plan
         working-directory: infra
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          terraform init
-          terraform plan \
-            -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
-            -var="ecr_repo=${{ secrets.ECR_REPO }}" \
-            -var="key_name=${{ secrets.EC2_KEY_NAME }}" \
-            -var="aws_region=${{ secrets.AWS_REGION }}"
+        run: terraform plan -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" -var="ecr_repo=${{ secrets.ECR_REPO }}" -var="key_name=${{ secrets.EC2_KEY_NAME }}" -var="aws_region=${{ secrets.AWS_REGION }}"
 
       - name: Deploy with Terraform
         working-directory: infra
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          terraform apply -auto-approve \
-            -var="image_tag=$IMAGE_TAG" \
-            -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
-            -var="ecr_repo=${{ secrets.ECR_REPO }}" \
-            -var="key_name=${{ secrets.EC2_KEY_NAME }}" \
-            -var="aws_region=${{ secrets.AWS_REGION }}"
+        run: terraform apply -auto-approve -var="image_tag=$IMAGE_TAG" -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" -var="ecr_repo=${{ secrets.ECR_REPO }}" -var="key_name=${{ secrets.EC2_KEY_NAME }}" -var="aws_region=${{ secrets.AWS_REGION }}"

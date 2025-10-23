@@ -7,9 +7,10 @@ on:
   #   paths:
   #     - "infra/**"
 
-permissions:
-  contents: write
-  actions: write
+# permissions:  # Optional — remove if not using GITHUB_TOKEN for write actions
+#   contents: write
+#   actions: write
+
 
 jobs:
   deploy:
@@ -37,13 +38,11 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ./infra/web
-        run: terraform plan \
-          -var="key_name=${{ secrets.EC2_KEY_NAME }}"
+        run: terraform plan -var="key_name=${{ secrets.EC2_KEY_NAME }}"
 
       - name: Terraform Apply
         working-directory: ./infra/web
-        run: terraform apply -auto-approve \
-          -var="key_name=${{ secrets.EC2_KEY_NAME }}"
+        run: terraform apply -auto-approve -var="key_name=${{ secrets.EC2_KEY_NAME }}"
 
       - name: Output Web Server Public IP
         id: tf_output
