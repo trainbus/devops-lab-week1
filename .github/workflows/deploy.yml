@@ -49,9 +49,9 @@ jobs:
         working-directory: ./infra/web
         run: |
            set -e
-           IP=$(terraform output -raw web_public_ip)
-           echo "Web Server Public IP: $IP"
+           IP=$(terraform output -raw web_ip)
            echo "web_ip=$IP" >> $GITHUB_ENV
+           echo "web_ip: $IP"
 
       - name: Update GitHub Secret with EC2 Public IP
         working-directory: ./infra/web
@@ -72,7 +72,7 @@ jobs:
         run: |
           echo "✅ Deployment complete!"
           echo "🌍 Public IP: $web_ip"
-          
+
       - name: Validate Web IP
         run: |
           if ! echo "$web_ip" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
