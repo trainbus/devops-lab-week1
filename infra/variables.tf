@@ -13,3 +13,8 @@ variable "image_tag" {
   description = "Tag of the Docker image to deploy"
   type        = string
 }
+
+variable "ec2_name_oweb" {
+  description = "Name tag for the OnwuachiWebServer EC2 instance"
+  type        = string
+}

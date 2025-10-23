@@ -1,3 +1,9 @@
+module "web" {
+  source         = "./web"
+  key_name       = var.key_name
+  ec2_name_oweb  = "OnwuachiWebServer"
+}
+
 data "aws_security_group" "app_sg" {
   filter {
     name   = "group-name"
@@ -63,6 +69,6 @@ resource "aws_instance" "app" {
   EOF
 
   tags = {
-    Name = "DevOpsLabApp"
+    Name = "DevOpsLabApp-Node-01"
   }
 }

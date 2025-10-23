@@ -98,6 +98,6 @@ resource "aws_instance" "web" {
   EOF
 
   tags = {
-    Name = var.ec2_name
+    Name = var.ec2_name_oweb
   }
 }
