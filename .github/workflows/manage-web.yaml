@@ -13,6 +13,11 @@ on:
           - stop
           - upgrade
 
+permissions:
+  contents: write
+  actions: write
+  secrets: write
+
 jobs:
   manage:
     runs-on: ubuntu-latest
