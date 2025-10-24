@@ -36,15 +36,11 @@ jobs:
 
       - name: 🧪 Terraform Plan
         working-directory: ./infra
-        run: terraform plan \
-          -var="key_name=${{ secrets.EC2_KEY_NAME }}" \
-          -var="image_tag=${{ env.IMAGE_TAG }}"
+        run: terraform plan -var="key_name=${{ secrets.EC2_KEY_NAME }}" -var="image_tag=${{ env.IMAGE_TAG }}"
 
       - name: 🚀 Terraform Apply
         working-directory: ./infra
-        run: terraform apply -auto-approve \
-          -var="key_name=${{ secrets.EC2_KEY_NAME }}" \
-          -var="image_tag=${{ env.IMAGE_TAG }}"
+        run: terraform apply -auto-approve -var="key_name=${{ secrets.EC2_KEY_NAME }}" -var="image_tag=${{ env.IMAGE_TAG }}"
 
       - name: 🌍 Output Web Server Public IP
         id: tf_output
