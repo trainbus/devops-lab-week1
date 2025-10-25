@@ -6,8 +6,9 @@ resource "aws_security_group_rule" "ssh_local" {
   protocol          = "tcp"
   cidr_blocks       = ["47.12.88.38/32"]  # replace with your home IP
   security_group_id = data.aws_security_group.app_sg.id
-  description       = "Allow SSH from Derrick's local machine"
+  description       = "Allow SSH from local machine"  # <-- FIXED (removed apostrophe)
 }
+
 
 # Allow SSH from GitHub Actions runners
 resource "aws_security_group_rule" "ssh_github_actions" {
