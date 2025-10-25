@@ -1,7 +1,7 @@
 data "aws_security_group" "web_sg" {
   filter {
     name   = "group-name"
-    values = ["app-sg"]
+    values = ["web-sg"]
   }
 
   filter {
