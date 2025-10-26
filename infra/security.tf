@@ -50,13 +50,13 @@ resource "aws_security_group_rule" "web_access" {
   description       = "Allow public web access"
 }
 
-# Allow all outbound traffic (default)
-resource "aws_security_group_rule" "allow_all_egress" {
-  type              = "egress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = data.aws_security_group.app_sg.id
-  description       = "Allow all outbound traffic"
-}
+## Allow all outbound traffic (default)
+#resource "aws_security_group_rule" "allow_all_egress" {
+#  type              = "egress"
+#  from_port         = 0
+#  to_port           = 0
+#  protocol          = "-1"
+#  cidr_blocks       = ["0.0.0.0/0"]
+#  security_group_id = data.aws_security_group.app_sg.id
+#  description       = "Allow all outbound traffic"
+#}
