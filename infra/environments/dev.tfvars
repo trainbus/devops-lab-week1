@@ -1,0 +1,6 @@
+aws_account_id       = "046685909731"
+ecr_repo             = "hello-docker-node"
+key_name             = "onwua_key"
+aws_region           = "us-east-1"
+admin_ip             = "47.12.88.38/32"
+ec2_name_oweb        = "OnwuachiWebServer"
