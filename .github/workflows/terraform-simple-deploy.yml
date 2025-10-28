@@ -26,6 +26,10 @@ jobs:
       (github.event.inputs.environment == 'stage' && github.event.inputs.approve == 'yes') ||
       (github.event.inputs.environment == 'prod' && github.event.inputs.approve == 'yes')
 
+    defaults:
+        run:
+          working-directory: infra
+          
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
