@@ -29,3 +29,8 @@ variable "vpc_id" {
   description = "VPC ID for the ops EC2 instance"
   type        = string
 }
+
+variable "admin_ip" {
+  description = "Admin IP for SSH access"
+  type        = string
+}

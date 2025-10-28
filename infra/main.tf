@@ -1,9 +1,13 @@
-variable "admin_ip" {}
-
 module "web" {
-  source        = "./web"
-  key_name      = var.key_name
-  ec2_name_oweb = "OnwuachiWebServer"
+  source           = "./web"
+  key_name         = var.key_name
+  subnet_id        = var.subnet_web_subnet_id
+  vpc_id           = var.vpc_id
+  ec2_name         = var.ec2_name_oweb
+  ec2_name_oweb    = "OnwuachiWebServer"
+  admin_ip         = var.admin_ip
+  ops_sg_id        = aws_security_group.ops_sg.id
+  ssm_profile_name = aws_iam_instance_profile.ec2_ssm_profile.name
 }
 
 module "wordpress" {
