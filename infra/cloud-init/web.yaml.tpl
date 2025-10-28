@@ -11,14 +11,10 @@ packages:
   - unzip
   - gnupg
   - lsb-release
-  - nsf-commons
   - haproxy
   - nginx
   - python3-certbot-nginx
   - docker.io
-  - docker-compose-plugin
-  - docker-ce-cli
-  - docker-ce
   - awscli
   - net-tools
   - gdb
@@ -35,10 +31,16 @@ runcmd:
   - systemctl start haproxy nginx docker
   - usermod -aG docker ubuntu
   - mkdir -p /etc/haproxy
-  - echo '${haproxy_cfg}' > /etc/haproxy/haproxy.cfg
+  - |
+    cat <<EOF > /etc/haproxy/haproxy.cfg
+    ${haproxy_cfg}
+    EOF
   - mkdir -p /var/www/html
   - echo "${html_content}" > /var/www/html/index.html
-  - echo '${nginx_cfg}' > /etc/nginx/sites-available/default
+  - |
+    cat <<EOF > /etc/nginx/sites-available/default
+    ${nginx_cfg}
+    EOF
   - systemctl reload nginx
   - sleep 60
   - certbot certonly --nginx -d ${domain} -d www.${domain} --non-interactive --agree-tos -m ${email} || echo "Certbot failed"
