@@ -45,4 +45,5 @@ jobs:
         run: terraform apply -auto-approve tfplan
 
       - name: Show MongoDB URL
-        run: echo "MongoDB Atlas URL: ${{ secrets.MONGODB_ATLAS_URL }}"
+        run: |
+            echo "MongoDB Atlas URL: ${{ secrets.MONGODB_ATLAS_URL }}"

@@ -3,9 +3,10 @@ name: Terraform Simple Deploy
 on:
   workflow_dispatch:
     inputs:
-on:
-  workflow_dispatch:
-    inputs:
+      environment:
+        description: 'Target environment (dev, uat, stage, prod)'
+        required: true
+        default: 'dev'
       approve:
         description: 'Approve deployment?'
         required: true
@@ -44,4 +45,5 @@ jobs:
         run: terraform apply -auto-approve tfplan
 
       - name: Show MongoDB URL
-        run: echo "MongoDB Atlas URL: ${{ secrets.MONGODB_ATLAS_URL }}"
+        run: |
+          echo "MongoDB Atlas URL: ${{ secrets.MONGODB_ATLAS_URL }}"
