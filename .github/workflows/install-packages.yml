@@ -20,10 +20,6 @@ jobs:
   ssh-install:
     runs-on: ubuntu-latest
 
-    env:
-      INSTANCE_IP: ${{ secrets.INSTANCE_IP }}
-      SSH_USER: ubuntu
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
