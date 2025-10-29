@@ -1,0 +1,27 @@
+name: Install Socat and python3-certbot-nginx Packages on EC2
+
+on:
+  workflow_dispatch:  # Manual trigger from GitHub UI
+
+jobs:
+  ssh-install:
+    runs-on: ubuntu-latest
+
+    env:
+      INSTANCE_IP: ${{ secrets.INSTANCE_IP }}
+      SSH_USER: ubuntu
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Run install_packages_socat_certbox_socat_certbox.sh 
+        run: |
+          chmod +x ./scripts/install_packages.sh_socat_certbox
+          ./scripts/install_packages.sh_socat_certbox "$INSTANCE_IP" ~/.ssh/id_rsa "$SSH_USER" python3-certbot-nginx

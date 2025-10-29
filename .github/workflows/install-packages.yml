@@ -1,0 +1,36 @@
+name: Install Service + Extras on EC2
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Main service to install (docker, nginx, haproxy, apache2)"
+        required: true
+        default: "nginx"
+      extras:
+        description: "Extra packages (space-separated)"
+        required: false
+        default: "python3-certbot-nginx"
+
+jobs:
+  ssh-install:
+    runs-on: ubuntu-latest
+
+    env:
+      INSTANCE_IP: ${{ secrets.INSTANCE_IP }}
+      SSH_USER: ubuntu
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Run install_packages.sh
+        run: |
+          chmod +x ./scripts/install_packages.sh
+          ./scripts/install_packages.sh "$INSTANCE_IP" ~/.ssh/id_rsa "$SSH_USER" "${{ github.event.inputs.service }}" ${{ github.event.inputs.extras }}
