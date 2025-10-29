@@ -33,4 +33,9 @@ jobs:
       - name: Run install_packages.sh
         run: |
           chmod +x ./scripts/install_packages.sh
-          ./scripts/install_packages.sh "$INSTANCE_IP" ~/.ssh/id_rsa "$SSH_USER" "${{ github.event.inputs.service }}" ${{ github.event.inputs.extras }}
+          ./scripts/install_packages.sh \
+            "${{ github.event.inputs.instance_ip }}" \
+            ~/.ssh/id_rsa \
+            ubuntu \
+            "${{ github.event.inputs.service }}" \
+            ${{ github.event.inputs.extras }}
