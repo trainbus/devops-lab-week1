@@ -3,14 +3,18 @@ name: Install Service + Extras on EC2
 on:
   workflow_dispatch:
     inputs:
+      instance_ip:
+        description: "EC2 public IP"
+        required: true
       service:
-        description: "Main service to install (docker, nginx, haproxy, apache2)"
+        description: "Main service to install"
         required: true
         default: "nginx"
       extras:
         description: "Extra packages (space-separated)"
         required: false
         default: "python3-certbot-nginx"
+
 
 jobs:
   ssh-install:

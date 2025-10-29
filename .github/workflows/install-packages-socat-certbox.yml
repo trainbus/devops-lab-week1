@@ -1,7 +1,19 @@
 name: Install Socat and python3-certbot-nginx Packages on EC2
 
 on:
-  workflow_dispatch:  # Manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      instance_ip:
+        description: "EC2 public IP"
+        required: true
+      service:
+        description: "Main service to install (nginx, docker, haproxy, apache2)"
+        required: true
+        default: "nginx"
+      extras:
+        description: "Extra packages (space-separated)"
+        required: false
+        default: "socat python3-certbot-nginx"
 
 jobs:
   ssh-install:
