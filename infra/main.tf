@@ -1,35 +1,33 @@
 module "web" {
-  source           = "./web"
-  key_name         = var.key_name
-  subnet_id        = var.subnet_web_subnet_id
-  vpc_id           = var.vpc_id
-  ec2_name         = var.ec2_name_oweb
-  ec2_name_oweb    = "OnwuachiWebServer"
-  admin_ip         = var.admin_ip
-  ops_sg_id        = aws_security_group.ops_sg.id
-  ssm_profile_name = aws_iam_instance_profile.ec2_ssm_profile.name
-}
-
-module "wordpress" {
-  source           = "./wordpress"
-  key_name         = var.key_name
-  subnet_id        = var.subnet_web_subnet_id
-  vpc_id           = var.vpc_id
-  ec2_name         = "wordpress_01"
-  admin_ip         = var.admin_ip
-  wordpress_sg_id  = aws_security_group.wordpress_sg.id
-  ssm_profile_name = aws_iam_instance_profile.ec2_ssm_profile.name
+  source               = "./web"
+  vpc_id               = module.shared.vpc_id
+  subnet_id            = element(module.shared.public_subnets, 0)
+  iam_instance_profile = module.shared.iam_instance_profile
+  key_name             = var.key_name
 }
 
 module "ops" {
-  source           = "./ops"
-  key_name         = var.key_name
-  subnet_id        = var.subnet_web_subnet_id
-  vpc_id           = var.vpc_id
-  ec2_name         = "ops_01"
-  admin_ip         = var.admin_ip
-  ops_sg_id        = aws_security_group.ops_sg.id
-  ssm_profile_name = aws_iam_instance_profile.ec2_ssm_profile.name
+  source               = "./ops"
+  vpc_id               = module.shared.vpc_id
+  subnet_id            = element(module.shared.public_subnets, 1)
+  iam_instance_profile = module.shared.iam_instance_profile
+  key_name             = var.key_name
+}
+
+module "api" {
+  source               = "./api"
+  vpc_id               = module.shared.vpc_id
+  subnet_id            = element(module.shared.public_subnets, 0)
+  iam_instance_profile = module.shared.iam_instance_profile
+  mongodb_secret_arn   = module.shared.mongodb_secret_arn
+  key_name             = var.key_name
+}
+
+module "wordpress" {
+  source    = "./wordpress"
+  vpc_id    = module.shared.vpc_id
+  subnet_id = element(module.shared.public_subnets, 0)
+  key_name  = var.key_name
 }
 
 data "aws_security_group" "app_sg" {
