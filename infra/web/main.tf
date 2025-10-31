@@ -15,7 +15,7 @@ data "aws_iam_instance_profile" "app_profile" {
 }
 
 resource "aws_instance" "web" {
-  ami                    = "ami-04a81a99f5ec58529"
+  ami                    = "ami-0fdb3d1c4f3920d1c" #currently using Packer AMI to revert use or latest: ami-04a81a99f5ec58529
   instance_type          = "t3.micro"
   key_name               = var.key_name
   subnet_id              = var.subnet_id

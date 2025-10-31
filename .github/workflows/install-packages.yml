@@ -15,7 +15,6 @@ on:
         required: false
         default: "python3-certbot-nginx"
 
-
 jobs:
   ssh-install:
     runs-on: ubuntu-latest
