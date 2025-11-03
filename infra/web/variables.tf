@@ -1,46 +1,26 @@
-variable "aws_region" {
-  description = "AWS region to deploy to"
-  default     = "us-east-1"
-}
+variable "vpc_id" {}
+variable "subnet_id" {}
+variable "iam_instance_profile" {}
+variable "key_name" {}
+variable "aws_region" { default = "us-east-1" }
+variable "ec2_name_oweb" { default = "onwuachi_web_01" }
 
-variable "key_name" {
-  description = "EC2 key pair name for SSH access"
-  type        = string
-  default     = "onwua_key"
-}
+variable "aws_account_id" {}
+variable "ecr_repo_node" { default = "hello-docker-node" }
+variable "ecr_repo_go"   { default = "hello-docker-go" }
+variable "ecr_repo_wordpress" { default = "wordpress" }
 
-variable "ec2_name_oweb" {
-  description = "Name tag for the EC2 instance"
-  type        = string
-  default     = "OnwuachiWebServer"
-}
+#variable "mongodb_secret_arn" {
+#  description = "ARN of MongoDB secret from shared module"
+#  type        = string
+#}
 
-variable "ec2_name" {
-  type        = string
-  description = "Name tag for the ops EC2 instance"
-}
-
-variable "subnet_id" {
-  type        = string
-  description = "Subnet ID for the ops EC2 instance"
-}
-
-variable "vpc_id" {
-  type        = string
-  description = "VPC ID for the ops EC2 instance"
-}
-
-variable "admin_ip" {
-  description = "Admin IP for SSH access"
+variable "mongo_uri" {
+  description = "MongoDB connection string"
   type        = string
 }
 
-variable "ops_sg_id" {
-  description = "Security group ID for the Ops EC2 instance"
-  type        = string
-}
-
-variable "ssm_profile_name" {
-  description = "IAM instance profile name for EC2"
+variable "web_sg_id" {
+  description = "Security group ID for the web EC2 instance"
   type        = string
 }

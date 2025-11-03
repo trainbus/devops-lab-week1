@@ -1,34 +1,37 @@
-data "aws_security_group" "ops_sg" {
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"]
   filter {
-    name   = "group-name"
-    values = ["ops-sg"]
-  }
-
-  filter {
-    name   = "vpc-id"
-    values = ["vpc-0eb5fc6c2f99e5267"]
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
   }
 }
 
-data "aws_iam_instance_profile" "app_profile" {
-  name = "devopslab-instance-profile"
+
+locals {
+  docker_compose_content = file("${path.module}/cloud-init/docker-compose.yml.tpl")
 }
 
 resource "aws_instance" "web" {
-  ami                    = "ami-0fdb3d1c4f3920d1c" #currently using Packer AMI to revert use or latest: ami-04a81a99f5ec58529
+  ami                    = data.aws_ami.ubuntu.id
   instance_type          = "t3.micro"
-  key_name               = var.key_name
   subnet_id              = var.subnet_id
-  vpc_security_group_ids = [var.ops_sg_id]
-  iam_instance_profile   = var.ssm_profile_name
+  key_name               = var.key_name
+  vpc_security_group_ids = [var.web_sg_id]
+  iam_instance_profile   = var.iam_instance_profile
 
-  user_data = templatefile("${path.module}/../cloud-init/web.yaml.tpl", {
-  domain       = "onwuachi.com"
-  email        = "admin@onwuachi.com"
-  haproxy_cfg  = file("${path.module}/../cloud-init/haproxy.cfg")
-  nginx_cfg    = file("${path.module}/../cloud-init/nginx.conf")
-  html_content = "<h1>Welcome to Onwuachi.com</h1><p>DevOps KB & Links Coming Soon.</p>"
-})
+  user_data = templatefile("${path.module}/cloud-init/web.yaml.tpl", {
+    domain             = "onwuachi.com"
+    email              = "admin@onwuachi.com"
+    aws_region         = var.aws_region
+    aws_account_id     = var.aws_account_id
+    ecr_repo_node      = var.ecr_repo_node
+    ecr_repo_go        = var.ecr_repo_go
+    ecr_repo_wordpress = var.ecr_repo_wordpress
+    mongo_uri          = var.mongo_uri
+    path_module        = path.module
+    docker_compose_content  = local.docker_compose_content 
+  })
 
   tags = {
     Name = var.ec2_name_oweb

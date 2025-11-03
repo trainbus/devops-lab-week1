@@ -28,7 +28,7 @@ variable "ops_sg_id" {
   type        = string
 }
 
-variable "ssm_profile_name" {
+variable "iam_instance_profile" {
   description = "IAM instance profile name for EC2"
   type        = string
 }
