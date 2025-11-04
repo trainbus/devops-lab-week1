@@ -13,11 +13,6 @@ variable "iam_instance_profile" {
   description = "IAM instance profile name"
 }
 
-variable "mongodb_secret_arn" {
-  type        = string
-  description = "ARN of the MongoDB secret"
-}
-
 variable "key_name" {
   type        = string
   description = "SSH key name"
@@ -36,4 +31,14 @@ variable "admin_ip" {
 variable "ops_sg_id" {
   type        = string
   description = "Security group ID for the API instance"
+}
+
+#variable "mongodb_secret_arn" {
+#  type        = string
+#  description = "ARN of the MongoDB secret"
+#}
+
+variable "mongo_uri" {
+  type        = string
+  description = "MongoDB connection string"
 }
