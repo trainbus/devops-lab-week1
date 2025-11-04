@@ -4,11 +4,6 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "vpc_id" {
-  description = "VPC ID for security groups"
-  type        = string
-}
-
 variable "vpc_cidr" {
   description = "VPC CIDR block"
   type        = string
@@ -25,11 +20,6 @@ variable "aws_account_id" {
   type        = string
 }
 
-#variable "admin_ip" {
-#  description = "Admin IP allowed for SSH"
-#  type        = string
-#}
-
 variable "admin_ip" {
   description = "Admin IP for SSH access"
   type        = string
@@ -41,10 +31,15 @@ variable "admin_ip" {
   }
 }
 
+variable "mongo_uri" {
+  type        = string
+  description = "MongoDB connection string"
+  default     = ""
+}
+
+
 variable "project_name" {
   description = "Base name for resources"
   type        = string
   default     = "devopslab"
 }
-
-

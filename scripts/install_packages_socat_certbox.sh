@@ -3,6 +3,12 @@
 # Usage: ./install_packages.sh <IP_ADDRESS> <KEY_PATH> <USER> <PACKAGE1> [PACKAGE2] ...
 # Example: ./install_packages.sh 54.160.62.82 ~/.ssh/onwua_key.pem ubuntu python3-certbot-nginx socat
 
+if [ "$#" -lt 4 ]; then
+  echo "❌ Usage: $0 <IP_ADDRESS> <KEY_PATH> <USER> <PACKAGE1> [PACKAGE2] ..."
+  exit 1
+fi
+
+
 IP="$1"
 KEY="$2"
 USER="$3"

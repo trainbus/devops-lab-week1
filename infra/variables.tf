@@ -49,6 +49,7 @@ variable "admin_ip" {
 variable "mongo_uri" {
   description = "MongoDB connection string"
   type        = string
+  default     = ""
 }
 
 variable "iam_instance_profile" {

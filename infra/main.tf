@@ -3,7 +3,6 @@ module "shared" {
   key_name       = var.key_name
   aws_account_id = var.aws_account_id
   admin_ip       = var.admin_ip
-  vpc_id         = module.shared.vpc_id
 }
 
 module "security" {
@@ -44,7 +43,7 @@ module "api" {
   vpc_id               = module.shared.vpc_id
   subnet_id            = element(module.shared.public_subnets, 0)
   iam_instance_profile = module.shared.iam_instance_profile
-  mongodb_secret_arn   = module.shared.mongodb_secret_arn
+  mongo_uri            = var.mongo_uri
   key_name             = var.key_name
   ec2_name             = "api-01"
   admin_ip             = var.admin_ip
@@ -66,11 +65,11 @@ module "app" {
   source               = "./app"
   vpc_id               = module.shared.vpc_id
   subnet_id            = element(module.shared.public_subnets, 0)
-  iam_instance_profile = module.shared.iam_instance_profile
   key_name             = var.key_name
+  aws_account_id       = var.aws_account_id
+  iam_instance_profile = module.shared.iam_instance_profile
   aws_region           = var.aws_region
   ec2_name             = "Node-app-01"
-  aws_account_id       = var.aws_account_id
   ecr_repo             = var.ecr_repo
   admin_ip             = var.admin_ip
   mongo_uri            = var.mongo_uri
@@ -78,6 +77,3 @@ module "app" {
   enable_ssm           = true
 }
 
-data "aws_iam_instance_profile" "app_profile" {
-  name = "devopslab-instance-profile"
-}

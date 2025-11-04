@@ -6,4 +6,5 @@ admin_ip             = "47.12.88.38/32"
 ec2_name_oweb        = "OnwuachiWebServer-dev"
 vpc_id               = "vpc-0eb5fc6c2f99e5267"
 subnet_web_subnet_id = "subnet-096b9f4703b5c2fc4"
-#mongo_uri            = 
+mongo_uri            = "mongodb://placeholder"
+iam_instance_profile = "devopslab-instance-profile"
