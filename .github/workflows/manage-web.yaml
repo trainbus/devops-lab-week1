@@ -16,24 +16,59 @@ on:
 jobs:
   manage:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: 🧾 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up SSH key
+      - name: 🔐 Set up SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/onwua_key.pem
           chmod 600 ~/.ssh/onwua_key.pem
 
-      - name: Run selected action
-        run: |
-          # Disable strict host key checking (for GitHub runner)
-          echo "StrictHostKeyChecking no" >> ~/.ssh/config
+          # Disable strict host verification for automation
+          echo "Host *" > ~/.ssh/config
+          echo "    StrictHostKeyChecking no" >> ~/.ssh/config
+          echo "    UserKnownHostsFile=/dev/null" >> ~/.ssh/config
 
-          case "${{ github.event.inputs.action }}" in
-            start) bash scripts/start-web.sh "${{ secrets.EC2_PUBLIC_IP }}" ;;
-            stop) bash scripts/stop-web.sh "${{ secrets.EC2_PUBLIC_IP }}" ;;
-            upgrade) bash scripts/upgrade-web.sh "${{ secrets.EC2_PUBLIC_IP }}" ;;
-            *) echo "Invalid action: ${{ github.event.inputs.action }}" ; exit 1 ;;
+      - name: 🌍 Retrieve EC2 IP from secret
+        id: get_ip
+        run: |
+          if [[ -z "${{ secrets.EC2_PUBLIC_IP }}" ]]; then
+            echo "❌ EC2_PUBLIC_IP secret is missing!"
+            exit 1
+          fi
+          echo "EC2_IP=${{ secrets.EC2_PUBLIC_IP }}" >> $GITHUB_ENV
+          echo "✅ Using EC2 IP: ${{ secrets.EC2_PUBLIC_IP }}"
+
+      - name: 🔎 Test SSH connectivity
+        run: |
+          echo "Testing SSH connection to EC2 instance..."
+          ssh -i ~/.ssh/onwua_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ env.EC2_IP }} "echo '✅ SSH Connected Successfully!'"
+
+      - name: 🧭 Run selected action
+        run: |
+          ACTION="${{ github.event.inputs.action }}"
+          EC2_IP="${{ env.EC2_IP }}"
+
+          echo "Running '${ACTION}' on Onwuachi web server ($EC2_IP)..."
+
+          case "$ACTION" in
+            start)
+              bash scripts/start-web.sh "$EC2_IP"
+              ;;
+            stop)
+              bash scripts/stop-web.sh "$EC2_IP"
+              ;;
+            upgrade)
+              bash scripts/upgrade-web.sh "$EC2_IP"
+              ;;
+            *)
+              echo "❌ Invalid action: $ACTION"
+              exit 1
+              ;;
           esac
+
+      - name: ✅ Confirm Completion
+        run: echo "🎉 Action completed successfully on Onwuachi web server!"

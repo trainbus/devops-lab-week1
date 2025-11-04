@@ -1,0 +1,16 @@
+output "vpc_id" {
+  value = aws_vpc.main.id
+}
+
+output "public_subnets" {
+  value = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+}
+
+output "iam_instance_profile" {
+  value = aws_iam_instance_profile.ec2_profile.name
+}
+
+#output "mongodb_secret_arn" {
+#  value = aws_secretsmanager_secret.mongodb.arn
+#}
+

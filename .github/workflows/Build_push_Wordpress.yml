@@ -1,0 +1,22 @@
+name: Build & Push WordPress
+
+on:
+  push:
+    paths:
+      - 'wordpress-docker/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker image
+        run: docker build -t onwuachi-wordpress ./wordpress-docker
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region us-east-1 | \
+          docker login --username AWS --password-stdin <your-ecr-url>
+      - name: Push to ECR
+        run: |
+          docker tag onwuachi-wordpress:latest <your-ecr-url>/onwuachi-wordpress:latest
+          docker push <your-ecr-url>/onwuachi-wordpress:latest

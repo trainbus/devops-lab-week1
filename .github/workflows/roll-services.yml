@@ -1,0 +1,32 @@
+name: Roll linklive Service All
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: 'AWS region'
+        required: true
+        default: 'us-east-1'
+      instance_id:
+        description: 'EC2 instance ID'
+        required: true
+
+jobs:
+  roll-ssm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Roll linklive Service All (SSM)
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          instance_id: ${{ github.event.inputs.instance_id }}
+        run: |
+          command_id=$(aws ssm send-command \
+            --region ${{ github.event.inputs.region }} \
+            --document-name "AWS-RunShellScript" \
+            --instance-ids "${instance_id}" \
+            --parameters '{"commands":["cd /opt/myapp && ./stop.sh && ./start.sh"]}' \
+            --query "Command.CommandId" --output text)
+          echo "Command ID: $command_id"
+          # poll for status...
