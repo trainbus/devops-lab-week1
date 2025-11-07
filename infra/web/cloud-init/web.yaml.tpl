@@ -7,51 +7,35 @@ packages:
   - awscli
   - certbot
   - python3-certbot-nginx
-runcmd:
-  - systemctl enable nginx docker
-  - systemctl start nginx docker
-  - usermod -aG docker ubuntu
-  - echo "<h1>Welcome to Onwuachi.com</h1><p>The CloudNinja that gives you DevOps KB & Links Coming Soon., top list for recipes, anime, wiki's and more</p>" > /var/www/html/index.html
-  - certbot certonly --nginx -d onwuachi.com -d www.onwuachi.com --agree-tos -m admin@onwuachi.com --non-interactive || true
-  - systemctl reload nginx
-  - docker run -d -p 8080:8080 ghcr.io/hello-world
 
-#cloud-config
-package_update: true
-package_upgrade: true
-packages:
-  - docker.io
-  - docker-compose-plugin
-  - awscli
-  - certbot
-  - python3-certbot-nginx
-
-runcmd:
-  - echo "=== Starting multi-app provisioning ==="
+bootcmd:
   - apt-get update -y
-  - systemctl enable docker
-  - systemctl start docker
-  - usermod -aG docker ubuntu
 
-  # Inject MongoDB URI from Terraform
-  - echo "Injecting Mongo URI..."
-  - MONGO_URI="${mongo_uri}"
+write_files:
+  - path: /home/ubuntu/compose/docker-compose.yml
+    permissions: '0644'
+    owner: ubuntu:ubuntu
+    content: |
+      ${docker_compose_content}
 
-  # Create directories
+  - path: /var/www/html/index.html
+    permissions: '0644'
+    owner: www-data:www-data
+    content: |
+      <h1>Welcome to Onwuachi.com</h1>
+      <p>The CloudNinja that gives you DevOps KB & Links Coming Soon. Top list for recipes, anime, wikis and more.</p>
+
+runcmd:
+  - apt-get update -y || true
+  - apt-get install -y docker.io docker-compose-plugin awscli certbot python3-certbot-nginx || true
+  - usermod -aG docker ubuntu || true
+  - systemctl enable docker || true
+  - systemctl start docker || true
   - mkdir -p /home/ubuntu/compose
   - cd /home/ubuntu/compose
-
-  # Write Docker Compose template
-  - |
-    cat <<'EOF' > docker-compose.yml
-    ${docker_compose_content}
-    EOF
-
-  - echo "Pulling images..."
-  - /usr/local/bin/aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${aws_account_id}.dkr.ecr.${aws_region}.amazonaws.com
-  - docker-compose pull
-  - docker-compose up -d
-
-  - echo "<h1>Welcome to Onwuachi.com</h1><p>The CloudNinja that gives you DevOps KB & Links Coming Soon., top list for recipes, anime, wiki's and more</p>" > /var/www/html/index.html
+  - /usr/bin/aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${aws_account_id}.dkr.ecr.${aws_region}.amazonaws.com
+  - docker compose -f /home/ubuntu/compose/docker-compose.yml pull
+  - docker compose -f /home/ubuntu/compose/docker-compose.yml up -d
   - certbot certonly --nginx -d onwuachi.com -d www.onwuachi.com --agree-tos -m admin@onwuachi.com --non-interactive || true
+  - systemctl reload nginx || true
   - echo "=== Provisioning complete ==="

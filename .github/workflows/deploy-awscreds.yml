@@ -1,0 +1,26 @@
+name: Setup AWS Credentials for ie. Onwua.com
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_ip:
+        description: "Public IP of the EC2 instance (optional for future use)"
+        required: false
+
+jobs:
+  setup-aws:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Verify AWS identity
+      run: aws sts get-caller-identity
