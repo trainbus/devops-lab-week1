@@ -1,0 +1,49 @@
+version: '3.9'
+
+services:
+  hugo:
+    build: ./hugo-site
+    container_name: hugo-site
+    ports:
+      - "1313:1313"
+    volumes:
+      - ./hugo-site:/src
+    command: server -D --bind 0.0.0.0
+    depends_on:
+      - api
+
+  api:
+    build: ./api
+    container_name: api-server
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../.env
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - NODE_ENV=production
+    restart: always
+
+  admin-ui:
+    build: ./admin-ui
+    container_name: admin-ui
+    ports:
+      - "5173:5173"
+    environment:
+      - API_URL=http://localhost:3000/api
+    depends_on:
+      - api
+
+  haproxy:
+    build: ./web
+    container_name: haproxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./web/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - /etc/letsencrypt/live/onwuachi.com:/etc/letsencrypt/live/onwuachi.com:ro
+    depends_on:
+      - hugo
+      - api
+
