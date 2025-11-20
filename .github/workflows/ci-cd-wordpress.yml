@@ -1,0 +1,49 @@
+name: WordPress CI/CD
+
+on:
+  push:
+    branches: [ "prod" ]
+    paths:
+      - "wordpress/**"
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Set IMAGE_TAG
+        run: echo "IMAGE_TAG=wp-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Build & Push WordPress image
+        run: |
+          REPO=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_WORDPRESS }}
+          docker build -t $REPO:$IMAGE_TAG wordpress
+          docker tag $REPO:$IMAGE_TAG $REPO:latest
+          docker push $REPO:$IMAGE_TAG
+          docker push $REPO:latest
+
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: infra
+        run: terraform apply -auto-approve \
+              -var="ecr_repo_wordpress=${{ secrets.ECR_REPO_WORDPRESS }}" \
+              -var="image_tag=$IMAGE_TAG" \
+              -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
+              -var="aws_region=${{ secrets.AWS_REGION }}" \
+              -var="key_name=${{ secrets.EC2_KEY_NAME }}"

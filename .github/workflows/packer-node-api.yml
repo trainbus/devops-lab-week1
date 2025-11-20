@@ -1,0 +1,64 @@
+name: Build Packer AMI - node-api
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - packer/*
+
+jobs:
+  build-node-ami:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      SSM_PARAM_NAME: "/devopslab/ami/node-api" # change to your naming convention
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@v1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: init packer (node-api)
+        working-directory: infra/packer/node-api
+        run: packer init .
+
+      - name: validate packer template
+        working-directory: infra/packer/node-api
+        run: packer validate template.pkr.hcl
+
+      - name: build packer AMI (node-api)
+        working-directory: infra/packer/node-api
+        id: packer_build
+        run: |
+          set -o pipefail
+          # run packer build in machine-readable mode and capture output
+          PACKER_LOG=1 packer build -machine-readable -var "aws_region=${{ env.AWS_REGION }}" template.pkr.hcl 2>&1 | tee packer-output.txt
+          # parse AMI id (artifact line contains "artifact,0,id,ami-xxxxxxxx")
+          AMI_ID=$(grep 'artifact,.*id,' packer-output.txt | tail -n1 | awk -F, '{print $4}')
+          if [ -z "$AMI_ID" ]; then
+            echo "ERROR: AMI ID not found in packer output"
+            cat packer-output.txt
+            exit 1
+          fi
+          echo "ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+          echo "Built AMI: $AMI_ID"
+
+      - name: Publish AMI ID to SSM Parameter Store
+        run: |
+          aws ssm put-parameter \
+            --name "${{ env.SSM_PARAM_NAME }}" \
+            --value "${{ steps.packer_build.outputs.ami_id }}" \
+            --type "String" \
+            --overwrite \
+            --region "${{ env.AWS_REGION }}"

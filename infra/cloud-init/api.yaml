@@ -1,0 +1,7 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+runcmd:
+  - cd /home/ubuntu/devops-lab-week1/infra
+  - docker compose -f docker-compose.yml up -d api
+
