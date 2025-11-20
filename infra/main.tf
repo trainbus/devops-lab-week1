@@ -51,6 +51,11 @@ module "wordpress" {
   ssm_profile_name = module.shared.iam_instance_profile
   ec2_name         = "wordpress-01"
   admin_ip         = var.admin_ip
+  aws_account_id       = var.aws_account_id
+  aws_region           = var.aws_region
+  ecr_repo_node        = var.ecr_repo
+  ecr_repo_go          = "hello-docker-go"
+  ecr_repo_wordpress   = "wordpress"  
   wordpress_sg_id  = module.security.wordpress_sg_id # if you expose it revert #aws_security_group.wordpress_sg.id
 }
 

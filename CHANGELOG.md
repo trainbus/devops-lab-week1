@@ -29,3 +29,29 @@
 - Add Route 53 DNS entries for public-facing services
 - Bake AMIs for faster future deploys
 - Push to GitHub and trigger CI/CD pipelineep 1: Create a CHANGELOG.md or infra-log.md
+
+
+## ✅ EC2 Instance Live
+
+- HAProxy and Nginx running successfully
+- SSL configured and site reachable at https://onwuachi.com
+- Docker not yet installed — next step for containerized apps
+- Verified system health, uptime, and service status
+
+## 🔧 Docker Group Membership
+
+- Added `ubuntu` user to `docker` group via `usermod -aG docker ubuntu`
+- Ensured Docker is installed before modifying group
+- Note: user must log out and back in for group membership to apply
+
+## 🐛 Fix: Invalid Cloud-init Structure
+
+- Removed invalid nesting of `write_files` inside `runcmd`
+- Refactored `web.yaml.tpl` to use proper top-level `write_files` block
+- Ensured Docker Compose and HTML landing page are written correctly
+
+## 🔧 Refactor: Cloud-init to Shell Script
+
+- Converted cloud-init provisioning logic into `setup_web_stack.sh`
+- Avoided YAML parse errors and improved reliability
+- Modularized Docker install, ECR login, and container startup
