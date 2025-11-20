@@ -19,36 +19,29 @@ module "web" {
   key_name             = var.key_name
   aws_account_id       = var.aws_account_id
   aws_region           = var.aws_region
-  ec2_name_oweb        = var.ec2_name_oweb
-  ecr_repo_node        = var.ecr_repo
-  ecr_repo_go          = "hello-docker-go"
-  ecr_repo_wordpress   = "wordpress"
+  ecr_repo_node        = var.ecr_repo_node
+  ecr_repo_go          = var.ecr_repo_go
+  ecr_repo_wordpress   = var.ecr_repo_wordpress
   mongo_uri            = var.mongo_uri # ✅ This will get updated when aws secrets is enabled for now save $$$
   web_sg_id            = module.security.web_sg_id
 }
 
 module "ops" {
-  source               = "./ops"
+  source = "./ops"
+
   vpc_id               = module.shared.vpc_id
   subnet_id            = element(module.shared.public_subnets, 1)
   iam_instance_profile = module.shared.iam_instance_profile
   key_name             = var.key_name
   ec2_name             = "ops-01"
   admin_ip             = var.admin_ip
-  ops_sg_id            = module.security.ops_sg_id # if you expose it
+  ops_sg_id            = module.security.ops_sg_id
+
+  admin_ui_ip  = module.admin_ui.admin_ui_public_ip
+  wordpress_ip = module.wordpress.wordpress_public_ip
+  node_app_ip  = module.app.app_public_ip
 }
 
-module "api" {
-  source               = "./api"
-  vpc_id               = module.shared.vpc_id
-  subnet_id            = element(module.shared.public_subnets, 0)
-  iam_instance_profile = module.shared.iam_instance_profile
-  mongo_uri            = var.mongo_uri
-  key_name             = var.key_name
-  ec2_name             = "api-01"
-  admin_ip             = var.admin_ip
-  ops_sg_id            = module.security.ops_sg_id
-}
 
 module "wordpress" {
   source           = "./wordpress"
@@ -70,10 +63,24 @@ module "app" {
   iam_instance_profile = module.shared.iam_instance_profile
   aws_region           = var.aws_region
   ec2_name             = "Node-app-01"
-  ecr_repo             = var.ecr_repo
+  ecr_repo_node        = var.ecr_repo_node
+  image_tag            = var.image_tag
   admin_ip             = var.admin_ip
   mongo_uri            = var.mongo_uri
   ops_sg_id            = module.security.ops_sg_id
   enable_ssm           = true
+}
+
+module "admin_ui" {
+  source = "./admin-ui-instance"
+
+  subnet_id            = element(module.shared.public_subnets, 1)
+  sg_id                = module.security.ops_sg_id
+  key_name             = var.key_name
+  iam_instance_profile = module.shared.iam_instance_profile
+
+  aws_region  = var.aws_region
+  ec2_name    = "admin-ui-01"
+  environment = "dev"
 }
 
