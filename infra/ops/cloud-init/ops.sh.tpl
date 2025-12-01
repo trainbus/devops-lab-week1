@@ -5,26 +5,41 @@ ADMIN_IP="${admin_ui_ip}"
 WORDPRESS_IP="${wordpress_ip}"
 NODE_IP="${node_app_ip}"
 DOMAIN="ops.onwuachi.com"
+CERT_PATH="/etc/letsencrypt/live/$DOMAIN/haproxy.pem"
 
 echo ">>> Updating system..."
 apt update -y
 apt install -y nginx haproxy certbot
 
-echo ">>> Stopping HAProxy to free port 80 for certbot..."
+echo ">>> Stopping services to free port 80..."
 systemctl stop haproxy || true
 systemctl stop nginx || true
 
-echo ">>> Requesting Let's Encrypt certificate for $DOMAIN..."
-certbot certonly --standalone -d $DOMAIN --non-interactive --agree-tos -m onwuabus@gmail.com
+# ---------------------------------------------------------
+# 1. ONLY REQUEST A CERT IF IT DOESN'T ALREADY EXIST
+# ---------------------------------------------------------
+if [ ! -f "$CERT_PATH" ]; then
+  echo ">>> No certificate found. Requesting new Let's Encrypt certificate..."
+  certbot certonly --standalone \
+    -d $DOMAIN \
+    --non-interactive \
+    --agree-tos \
+    -m onwuabus@gmail.com
 
-echo ">>> Creating haproxy.pem bundle..."
-cat \
-  /etc/letsencrypt/live/$DOMAIN/privkey.pem \
-  /etc/letsencrypt/live/$DOMAIN/fullchain.pem \
-  > /etc/letsencrypt/live/$DOMAIN/haproxy.pem
+  echo ">>> Creating HAProxy PEM bundle..."
+  cat \
+    /etc/letsencrypt/live/$DOMAIN/privkey.pem \
+    /etc/letsencrypt/live/$DOMAIN/fullchain.pem \
+      > $CERT_PATH
 
-chmod 600 /etc/letsencrypt/live/$DOMAIN/haproxy.pem
+  chmod 600 $CERT_PATH
+else
+  echo ">>> Certificate already exists. Skipping certbot."
+fi
 
+# ---------------------------------------------------------
+# 2. Write updated HAProxy configuration
+# ---------------------------------------------------------
 echo ">>> Writing HAProxy config..."
 cat <<EOF >/etc/haproxy/haproxy.cfg
 global
@@ -46,7 +61,7 @@ frontend http_in
   redirect scheme https code 301 if !{ ssl_fc }
 
 frontend https_in
-  bind *:443 ssl crt /etc/letsencrypt/live/$DOMAIN/haproxy.pem
+  bind *:443 ssl crt $CERT_PATH
   mode http
 
   acl is_api    path_beg /api
@@ -75,10 +90,18 @@ backend api_backend
 
 backend app_backend
   server app01 ${NODE_IP}:3000 check
+
+listen stats
+  bind *:8404
+  stats enable
+  stats uri /stats
 EOF
 
+# ---------------------------------------------------------
+# 3. Start Services
+# ---------------------------------------------------------
 echo ">>> Starting HAProxy..."
 systemctl start haproxy
 systemctl enable haproxy
 
-echo ">>> Finished provisioning ops server."
+echo ">>> Finished provisioning ops server (cloud-init complete)."
