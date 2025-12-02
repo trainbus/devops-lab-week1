@@ -105,3 +105,4 @@ systemctl start haproxy
 systemctl enable haproxy
 
 echo ">>> Finished provisioning ops server (cloud-init complete)."
+
