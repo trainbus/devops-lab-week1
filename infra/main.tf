@@ -29,34 +29,58 @@ module "web" {
 module "ops" {
   source = "./ops"
 
-  vpc_id               = module.shared.vpc_id
   subnet_id            = element(module.shared.public_subnets, 1)
+  ops_sg_id            = module.security.ops_sg_id
   iam_instance_profile = module.shared.iam_instance_profile
   key_name             = var.key_name
   ec2_name             = "ops-01"
-  admin_ip             = var.admin_ip
-  ops_sg_id            = module.security.ops_sg_id
+  instance_type        = "t3.micro"
 
   admin_ui_ip  = module.admin_ui.admin_ui_public_ip
   wordpress_ip = module.wordpress.wordpress_public_ip
   node_app_ip  = module.app.app_public_ip
+
+  # Domain for HAProxy
+  domain      = "ops.onwuachi.com"
+  root_domain = "onwuachi.com"
+
+  # make sure SSM params (created in root ssm.tf) exist before creating ops instance
+  depends_on = [
+    aws_ssm_parameter.node_api_url,
+    aws_ssm_parameter.admin_ui_url,
+    aws_ssm_parameter.hugo_url
+  ]
+}
+
+
+data "aws_route53_zone" "onwuachi" {
+  name         = "onwuachi.com."
+  private_zone = false
+}
+
+resource "aws_route53_record" "ops" {
+  zone_id = data.aws_route53_zone.onwuachi.zone_id
+  name    = "ops.onwuachi.com"
+  type    = "A"
+  ttl     = 60
+  records = [module.ops.ops_public_ip]   # Correct once ops module outputs EIP
 }
 
 
 module "wordpress" {
-  source           = "./wordpress"
-  vpc_id           = module.shared.vpc_id
-  subnet_id        = element(module.shared.public_subnets, 0)
-  key_name         = var.key_name
-  ssm_profile_name = module.shared.iam_instance_profile
-  ec2_name         = "wordpress-01"
-  admin_ip         = var.admin_ip
-  aws_account_id       = var.aws_account_id
-  aws_region           = var.aws_region
-  ecr_repo_node        = var.ecr_repo
-  ecr_repo_go          = "hello-docker-go"
-  ecr_repo_wordpress   = "wordpress"  
-  wordpress_sg_id  = module.security.wordpress_sg_id # if you expose it revert #aws_security_group.wordpress_sg.id
+  source             = "./wordpress"
+  vpc_id             = module.shared.vpc_id
+  subnet_id          = element(module.shared.public_subnets, 0)
+  key_name           = var.key_name
+  ssm_profile_name   = module.shared.iam_instance_profile
+  ec2_name           = "wordpress-01"
+  admin_ip           = var.admin_ip
+  aws_account_id     = var.aws_account_id
+  aws_region         = var.aws_region
+  ecr_repo_node      = var.ecr_repo_node
+  ecr_repo_go        = "hello-docker-go"
+  ecr_repo_wordpress = "wordpress"
+  wordpress_sg_id    = module.security.wordpress_sg_id # if you expose it revert #aws_security_group.wordpress_sg.id
 }
 
 module "app" {

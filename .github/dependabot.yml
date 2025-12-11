@@ -1,0 +1,27 @@
+version: 2
+updates:
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+
+  # Terraform
+  - package-ecosystem: "terraform"
+    directory: "/"
+    schedule:
+      interval: "daily"
+
+  # Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+
+  # Node (Admin UI + API)
+  - package-ecosystem: "npm"
+    directory: "/infra/app"
+    schedule:
+      interval: "daily"
+
+# open-pull-requests-limit: 5

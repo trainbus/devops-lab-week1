@@ -89,9 +89,9 @@ resource "aws_security_group" "web_sg" {
   vpc_id      = var.vpc_id
   description = "Security group for Onwuachi Web Server"
 
-#  lifecycle {
-#    prevent_destroy = true
-#  }
+  #  lifecycle {
+  #    prevent_destroy = true
+  #  }
 
 
   ingress {
@@ -126,3 +126,5 @@ resource "aws_security_group" "web_sg" {
     Name = "web-sg"
   })
 }
+
+

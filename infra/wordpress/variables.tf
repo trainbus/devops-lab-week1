@@ -36,6 +36,6 @@ variable "ssm_profile_name" {
 
 variable "aws_account_id" {}
 variable "ecr_repo_node" { default = "hello-docker-node" }
-variable "ecr_repo_go"   { default = "hello-docker-go" }
+variable "ecr_repo_go" { default = "hello-docker-go" }
 variable "ecr_repo_wordpress" { default = "wordpress" }
 variable "aws_region" { default = "us-east-1" }

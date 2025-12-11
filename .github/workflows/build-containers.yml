@@ -1,0 +1,31 @@
+name: Build & Push Containers
+
+on:
+  push:
+    paths:
+      - "app/**"
+      - "admin-ui/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS ECR Login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Node API
+        run: |
+          cd app
+          docker build -t $ECR_REPO_NODE:latest .
+          docker tag $ECR_REPO_NODE:latest $ECR_REPO_NODE:$(date +%s)
+          docker push $ECR_REPO_NODE:latest
+
+      - name: Build and Push Admin UI
+        run: |
+          cd admin-ui
+          docker build -t $ECR_REPO_ADMIN:latest .
+          docker tag $ECR_REPO_ADMIN:latest $ECR_REPO_ADMIN:$(date +%s)
+          docker push $ECR_REPO_ADMIN:latest
