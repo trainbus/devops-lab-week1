@@ -46,27 +46,13 @@ until aws sts get-caller-identity --region us-east-1 >/dev/null 2>&1; do
   sleep 3
 done
 
-echo "Fetching SSM parameters"
-NODE_API_URL=$(aws ssm get-parameter --name "/ops/node_api" --with-decryption --query "Parameter.Value" --output text --region us-east-1)
-#ADMIN_UI_URL=$(aws ssm get-parameter --name "/ops/admin_ui" --with-decryption --query "Parameter.Value" --output text --region us-east-1)
-#HUGO_URL=$(aws ssm get-parameter --name "/ops/hugo" --with-decryption --query "Parameter.Value" --output text --region us-east-1)
+NODE_API_URL=$(aws ssm get-parameter \
+  --name "/ops/node_api" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text \
+  --region us-east-1)
 
-echo "Updating SSL/TLS Cert Default"
-mkdir -p /etc/haproxy/certs
-
-if [ ! -f /etc/haproxy/certs/selfsigned.pem ]; then
-  openssl req -x509 -newkey rsa:2048 \
-    -keyout /etc/haproxy/certs/selfsigned.key \
-    -out /etc/haproxy/certs/selfsigned.crt \
-    -days 365 -nodes \
-    -subj "/CN=$${HOSTNAME}"
-
-  cat /etc/haproxy/certs/selfsigned.crt \
-      /etc/haproxy/certs/selfsigned.key \
-      > /etc/haproxy/certs/selfsigned.pem
-fi
-
-echo "Writing HAProxy config"
 cat >/etc/haproxy/haproxy.cfg <<HAPROXY
 global
   daemon
@@ -80,11 +66,6 @@ defaults
 
 frontend http_in
   bind *:80
-  http-request redirect scheme https code 301 if !{ ssl_fc }
-
-frontend https_in
-  bind *:443 ssl crt /etc/haproxy/certs/selfsigned.pem
-  mode http
 
   acl is_admin path_beg /admin
   acl is_hugo  path_beg /blog
@@ -94,7 +75,6 @@ frontend https_in
   use_backend hugo_backend if is_hugo
   use_backend api_backend if is_api
   default_backend hugo_backend
-
 
 backend admin_backend
   server admin localhost:8080 check
@@ -108,7 +88,6 @@ HAPROXY
 
 systemctl restart haproxy
 
-echo "Starting containers"
 docker compose -f /home/ubuntu/compose/docker-compose.yml pull
 docker compose -f /home/ubuntu/compose/docker-compose.yml up -d
 
@@ -117,6 +96,11 @@ EOF
 
 user_data_replace_on_change = true
 }
+
+
+
+
+
 
 ##############################
 # Elastic IP

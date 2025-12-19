@@ -46,12 +46,13 @@ build {
   sources = ["source.amazon-ebs.ops"]
 
   provisioner "shell" {
-    script = "scripts/install_ops.sh"
+    script          = "scripts/install_ops.sh"
+    execute_command = "sudo -E bash '{{ .Path }}'"
   }
 
-  post-processor "shell-local" {
-    inline = [
-      "aws ssm put-parameter --name /devopslab/ami/ops --value {{ .ArtifactId }} --type String --overwrite --region ${var.aws_region}"
-    ]
-  }
+  #post-processor "shell-local" {
+  #inline = [
+  #  "aws ssm put-parameter --name /devopslab/ami/ops --type String --value {{ .ArtifactId }} --overwrite --region ${var.aws_region}"
+  #]
+#}
 }
