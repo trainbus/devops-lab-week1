@@ -40,17 +40,19 @@ module "ops" {
   wordpress_ip = module.wordpress.wordpress_public_ip
   node_app_ip  = module.app.app_public_ip
 
-  # Domain for HAProxy
   domain      = "ops.onwuachi.com"
   root_domain = "onwuachi.com"
 
-  # make sure SSM params (created in root ssm.tf) exist before creating ops instance
+  aws_region     = var.aws_region
+  aws_account_id = var.aws_account_id
+
   depends_on = [
     aws_ssm_parameter.node_api_url,
     aws_ssm_parameter.admin_ui_url,
     aws_ssm_parameter.hugo_url
   ]
 }
+
 
 
 data "aws_route53_zone" "onwuachi" {
