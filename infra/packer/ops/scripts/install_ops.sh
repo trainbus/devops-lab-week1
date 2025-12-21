@@ -12,10 +12,19 @@ dpkg --configure -a || true
 
 echo ">>> Updating system and installing packages..."
 apt-get update -y
-DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  haproxy nginx certbot python3-certbot-nginx \
-  jq unzip curl docker.io docker-compose
 
+#DEBIAN_FRONTEND=noninteractive apt-get install -y \
+#  haproxy nginx certbot python3-certbot-nginx \
+#  jq unzip curl docker.io docker-compose
+
+apt-get install -y \
+  haproxy \
+  docker.io \
+  jq \
+  unzip \
+  curl \
+  net-tools \
+  certbot
 
 echo ">>> Enable docker & haproxy..."
 systemctl enable docker

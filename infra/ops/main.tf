@@ -20,7 +20,8 @@ resource "aws_instance" "ops" {
 
 user_data = <<-EOF
 #!/bin/bash
-set -euxo pipefail
+#set -euxo pipefail
+set -u
 
 LOG=/var/log/ops-user-data.log
 exec > >(tee -a $LOG) 2>&1
