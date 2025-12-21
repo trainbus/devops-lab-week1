@@ -4,20 +4,21 @@
 # It depends on module.app / module.admin_ui / module.web outputs
 ############################################
 
-resource "aws_ssm_parameter" "node_api_url" {
-  name        = "/ops/node_api"
-  description = "Private IP:port for Node API (used by OPS HAProxy)"
+resource "aws_ssm_parameter" "node_api_ip" {
+  name        = "/ops/node_api_ip"
+  description = "Private IP for Node API (used by OPS HAProxy)"
   type        = "SecureString"
   key_id      = "alias/aws/ssm"
 
-  # module.app must expose app_private_ip (private IP or private_dns)
-  value = "${module.app.app_private_ip}:3000"  # if you want port included
+  value = module.app.app_private_ip
+  overwrite   = true
 
   tags = {
     Component = "ops"
     Service   = "node-api"
   }
 }
+
 
 resource "aws_ssm_parameter" "admin_ui_url" {
   name        = "/ops/admin_ui"
@@ -50,7 +51,7 @@ resource "aws_ssm_parameter" "hugo_url" {
 output "ssm_ops_parameters" {
   description = "SSM parameter names for ops HAProxy"
   value = {
-    node_api = aws_ssm_parameter.node_api_url.name
+    #node_api = aws_ssm_parameter.node_api_url.name
     admin_ui = aws_ssm_parameter.admin_ui_url.name
     hugo     = aws_ssm_parameter.hugo_url.name
   }

@@ -29,6 +29,8 @@ NODE_API_URL=$(aws ssm get-parameter \
   --output text \
   --region ${aws_region})
 
+export NODE_API_IP
+
 ADMIN_UI_URL=$(aws ssm get-parameter \
   --name "/ops/admin_ui" \
   --query "Parameter.Value" \
@@ -84,6 +86,7 @@ backend api_backend
 EOF
 
 echo ">>> Restarting HAProxy..."
+envsubst < /etc/haproxy/haproxy.cfg.template > /etc/haproxy/haproxy.cfg
 systemctl restart haproxy
 systemctl enable haproxy
 

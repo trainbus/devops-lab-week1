@@ -47,7 +47,7 @@ module "ops" {
   aws_account_id = var.aws_account_id
 
   depends_on = [
-    aws_ssm_parameter.node_api_url,
+    #aws_ssm_parameter.node_api_url,
     aws_ssm_parameter.admin_ui_url,
     aws_ssm_parameter.hugo_url
   ]

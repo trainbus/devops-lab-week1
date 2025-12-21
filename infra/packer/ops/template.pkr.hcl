@@ -52,7 +52,7 @@ build {
 
   #post-processor "shell-local" {
   #inline = [
-  #  "aws ssm put-parameter --name /devopslab/ami/ops --type String --value {{ .ArtifactId }} --overwrite --region ${var.aws_region}"
+  #  "aws ssm put-parameter --name /devopslab/ami/ops --type String --value {{ replace .ArtifactId "us-east-1:" "" }} --overwrite --region ${var.aws_region}"
   #]
 #}
 }

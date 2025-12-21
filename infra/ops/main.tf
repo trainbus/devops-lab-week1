@@ -1,15 +1,3 @@
-####  Why data instead of resource for AMI SSM?  packer ami ID into ssm -> tf reads via data now = no broken CI flow
-#resource "aws_ssm_parameter" "ops_ami" {
-#  name        = "/devopslab/ami/ops"
-#  description = "AMI ID for Ops service"
-#  type        = "String"
-#  value       = "ami-05dd2db733186be21"   # OPS Packer AMI ID new with internal backend 
-#  overwrite   = true
-#}
-
-#resource "aws_instance" "ops" {
-#  ami                         = aws_ssm_parameter.ops_ami.value
-
 ##############################
 # Read AMI from SSM (Packer writes it)
 ##############################
@@ -30,12 +18,11 @@ resource "aws_instance" "ops" {
   associate_public_ip_address = true
 
 
-  user_data = <<-EOF
+user_data = <<-EOF
 #!/bin/bash
 set -euxo pipefail
 
 LOG=/var/log/ops-user-data.log
-touch $LOG
 exec > >(tee -a $LOG) 2>&1
 
 echo "=== OPS bootstrap start ==="
@@ -43,16 +30,28 @@ echo "=== OPS bootstrap start ==="
 # Wait for IAM role
 until aws sts get-caller-identity --region us-east-1 >/dev/null 2>&1; do
   echo "Waiting for IAM role..."
-  sleep 3
+  sleep 5
 done
 
-NODE_API_URL=$(aws ssm get-parameter \
-  --name "/ops/node_api" \
+echo "IAM role ready"
+
+# Ensure services
+usermod -aG docker ubuntu
+systemctl enable docker || true
+systemctl start docker || true
+systemctl enable haproxy || true
+
+# Fetch Node API IP (IP ONLY)
+NODE_API_IP=$(aws ssm get-parameter \
+  --name "/ops/node_api_ip" \
   --with-decryption \
   --query "Parameter.Value" \
   --output text \
   --region us-east-1)
 
+echo "Node API IP: $NODE_API_IP"
+
+# Write HAProxy config (HTTP ONLY)
 cat >/etc/haproxy/haproxy.cfg <<HAPROXY
 global
   daemon
@@ -83,23 +82,26 @@ backend hugo_backend
   server hugo localhost:1313 check
 
 backend api_backend
-  server api $${NODE_API_URL}:3000 check
+  server api $NODE_API_IP:3000 check
 HAPROXY
 
 systemctl restart haproxy
 
-docker compose -f /home/ubuntu/compose/docker-compose.yml pull
-docker compose -f /home/ubuntu/compose/docker-compose.yml up -d
+echo "HAProxy started"
 
 echo "=== OPS bootstrap complete ==="
 EOF
 
+
 user_data_replace_on_change = true
+
+tags = {
+  Name        = var.ec2_name
+  Environment = "dev"
+  Owner       = "derrick"
+  Role        = "ops"
+  }
 }
-
-
-
-
 
 
 ##############################
