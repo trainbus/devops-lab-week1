@@ -2,7 +2,7 @@
 # Read AMI from SSM (Packer writes it)
 ##############################
 data "aws_ssm_parameter" "ops_ami" {
-  name = "/devopslab/ami/ops"
+  name = "/devopslab/ami/ops/latest"
 }
 
 ##############################
@@ -17,10 +17,8 @@ resource "aws_instance" "ops" {
   key_name                    = var.key_name
   associate_public_ip_address = true
 
-
-user_data = <<-EOF
+  user_data = <<-EOF
 #!/bin/bash
-#set -euxo pipefail
 set -u
 
 LOG=/var/log/ops-user-data.log
@@ -52,47 +50,68 @@ NODE_API_IP=$(aws ssm get-parameter \
 
 echo "Node API IP: $NODE_API_IP"
 
-# Write HAProxy config (HTTP ONLY)
+################################
+# Write HAProxy config (runtime)
+################################
 cat >/etc/haproxy/haproxy.cfg <<HAPROXY
 global
   daemon
   maxconn 2048
+  log /dev/log local0
+
+  ssl-default-bind-options no-sslv3 no-tlsv10 no-tlsv11
+  ssl-default-bind-ciphers ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384
+  ssl-default-bind-ciphersuites TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256
 
 defaults
   mode http
+  log global
+  option httplog
   timeout connect 5s
-  timeout client 50s
-  timeout server 50s
+  timeout client  50s
+  timeout server  50s
 
 frontend http_in
   bind *:80
+  redirect scheme https code 301 if !{ ssl_fc }
+
+frontend https_in
+  bind *:443 ssl crt /etc/haproxy/certs/
 
   acl is_admin path_beg /admin
   acl is_hugo  path_beg /blog
   acl is_api   path_beg /api
 
   use_backend admin_backend if is_admin
-  use_backend hugo_backend if is_hugo
-  use_backend api_backend if is_api
+  use_backend hugo_backend  if is_hugo
+  use_backend api_backend   if is_api
   default_backend hugo_backend
 
 backend admin_backend
-  server admin localhost:8080 check
-
-backend hugo_backend
-  server hugo localhost:1313 check
+  server admin 127.0.0.1:8080 check
 
 backend api_backend
-  server api $NODE_API_IP:3000 check
-HAPROXY
+  server api $${NODE_API_IP}:3000 check
 
+backend hugo_backend
+  option httpchk GET /
+  server hugo 127.0.0.1:1313 check
+
+HAPROXY
 systemctl restart haproxy
 
 echo "HAProxy started"
 
+# TLS bootstrap (idempotent)
+if [ ! -f /etc/haproxy/certs/onwuachi.com.pem ]; then
+  echo "Running TLS bootstrap"
+  /usr/local/bin/bootstrap-tls.sh
+else
+  echo "TLS cert already exists, skipping"
+fi
+
 echo "=== OPS bootstrap complete ==="
 EOF
-
 
 user_data_replace_on_change = true
 
@@ -117,10 +136,33 @@ resource "aws_eip_association" "ops" {
   allocation_id = aws_eip.ops.id
 }
 
+
+# Obtain TLS cert on first boot
+#/usr/local/bin/bootstrap-tls.sh
+#  install -m 755 scripts/bootstrap-tls.sh /usr/local/bin/bootstrap-tls.sh
+
 ##############################
-# Route53 Record
+# Route53 records
 ##############################
 data "aws_route53_zone" "main" {
   name         = var.root_domain
   private_zone = false
 }
+
+resource "aws_route53_record" "root" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = var.root_domain
+  type    = "A"
+  ttl     = 60
+  records = [aws_eip.ops.public_ip]
+}
+
+resource "aws_route53_record" "www" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "www.${var.root_domain}"
+  type    = "A"
+  ttl     = 60
+  records = [aws_eip.ops.public_ip]
+}
+
+

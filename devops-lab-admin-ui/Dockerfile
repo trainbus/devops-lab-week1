@@ -1,8 +1,8 @@
-# admin-ui Dockerfile (build static site and serve via nginx)
-FROM node:20-alpine as builder
+# admin-ui/Dockerfile
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --no-audit --no-fund
+RUN npm ci --production=false
 COPY . .
 RUN npm run build
 
@@ -10,4 +10,3 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
-

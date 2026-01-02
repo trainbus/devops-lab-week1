@@ -1,58 +1,101 @@
 packer {
   required_plugins {
     amazon = {
-      version = ">= 1.0.0"
       source  = "github.com/hashicorp/amazon"
+      version = "~> 1.3"
     }
   }
 }
 
-variable "aws_region" {
+############################
+# Variables
+############################
+variable "region" {
   type    = string
   default = "us-east-1"
 }
 
-variable "instance_type" {
-  type    = string
-  default = "t3.micro"
-}
-
-variable "source_ami" {
-  type    = string
-  default = "ami-04a81a99f5ec58529"
-}
-
-variable "ssh_username" {
-  type    = string
-  default = "ubuntu"
-}
-
 variable "ami_name" {
   type    = string
-  default = "ops-base-ami-{{timestamp}}"
+  default = "ops-haproxy-static-nginx-hugo"
 }
 
+############################
+# Source AMI
+############################
 source "amazon-ebs" "ops" {
-  region                      = var.aws_region
-  instance_type               = var.instance_type
-  source_ami                  = var.source_ami
-  ssh_username                = var.ssh_username
-  ami_name                    = var.ami_name
+  region                      = var.region
+  instance_type               = "t3.small"
+  ssh_username                = "ubuntu"
   associate_public_ip_address = true
+
+  ami_name = "${var.ami_name}-{{timestamp}}"
+
+  source_ami_filter {
+    filters = {
+      name                = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"
+      virtualization-type = "hvm"
+      root-device-type    = "ebs"
+    }
+
+    owners      = ["099720109477"]
+    most_recent = true
+  }
 }
 
+############################
+# Build
+############################
 build {
   name    = "ops-image"
   sources = ["source.amazon-ebs.ops"]
 
+  ################################
+  # Provisioning
+  ################################
   provisioner "shell" {
-    script          = "scripts/install_ops.sh"
     execute_command = "sudo -E bash '{{ .Path }}'"
+    scripts = [
+      "scripts/base.sh",
+      "scripts/docker.sh",
+      "scripts/haproxy.sh",
+      "scripts/hugo.sh",
+      "scripts/systemd.sh"
+    ]
   }
 
-  #post-processor "shell-local" {
-  #inline = [
-  #  "aws ssm put-parameter --name /devopslab/ami/ops --type String --value {{ replace .ArtifactId "us-east-1:" "" }} --overwrite --region ${var.aws_region}"
-  #]
-#}
+  ################################
+  # TLS Bootstrap Script
+  ################################
+  provisioner "file" {
+    source      = "scripts/bootstrap-tls.sh"
+    destination = "/tmp/bootstrap-tls.sh"
+  }
+
+  provisioner "shell" {
+    inline = [
+      "sudo mv /tmp/bootstrap-tls.sh /usr/local/bin/bootstrap-tls.sh",
+      "sudo chmod 755 /usr/local/bin/bootstrap-tls.sh"
+    ]
+  }
+
+  ################################
+  # Post-processors (CORRECT STRUCTURE)
+  ################################
+  post-processors {
+
+    # 1. Write manifest file containing AMI ID
+    post-processor "manifest" {
+      output = "manifest.json"
+    }
+
+    # 2. Extract AMI ID and write to SSM
+    post-processor "shell-local" {
+      inline = [
+        "AMI_ID=$(jq -r '.builds[0].artifact_id' manifest.json | cut -d':' -f2)",
+        "echo \"DEBUG: AMI_ID=$AMI_ID\"",
+        "aws ssm put-parameter --name /devopslab/ami/ops/latest --type String --value \"$AMI_ID\" --overwrite --region ${var.region}"
+      ]
+    }
+  }
 }
