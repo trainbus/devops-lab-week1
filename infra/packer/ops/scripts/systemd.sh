@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+export DEBIAN_FRONTEND=noninteractive
 
 cat <<EOF > /etc/systemd/system/hugo-nginx.service
 [Unit]

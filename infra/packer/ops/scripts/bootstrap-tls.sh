@@ -1,5 +1,7 @@
 #!/bin/bash
 set -eux
+export DEBIAN_FRONTEND=noninteractive
+
 
 DOMAIN="onwuachi.com"
 EMAIL="admin@onwuachi.com"

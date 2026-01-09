@@ -1,16 +1,35 @@
 #!/bin/bash
 set -e
+export DEBIAN_FRONTEND=noninteractive
+
+echo "=== Installing HAProxy (AMI build) ==="
 
 # Install HAProxy
 apt-get update
 apt-get install -y haproxy
 
-# Ensure cert directory exists (runtime TLS bootstrap will populate it)
+# Ensure cert directory exists
 mkdir -p /etc/haproxy/certs
+chmod 755 /etc/haproxy/certs
 
-# Write a SAFE placeholder config for AMI build
-# This config MUST NOT reference real backend IPs
-cat <<EOF > /etc/haproxy/haproxy.cfg
+# Create dummy self-signed cert for AMI build safety
+if [ ! -f /etc/haproxy/certs/dummy.pem ]; then
+  openssl req -x509 -nodes -newkey rsa:2048 \
+    -keyout /etc/haproxy/certs/dummy.key \
+    -out /etc/haproxy/certs/dummy.crt \
+    -days 365 \
+    -subj "/CN=localhost"
+
+  cat /etc/haproxy/certs/dummy.key /etc/haproxy/certs/dummy.crt \
+    > /etc/haproxy/certs/dummy.pem
+
+  chmod 600 /etc/haproxy/certs/dummy.pem
+fi
+
+echo "Dummy PEM ready: /etc/haproxy/certs/dummy.pem"
+
+# Write a safe HAProxy config for AMI build
+cat <<'EOF' > /etc/haproxy/haproxy.cfg
 global
   daemon
   maxconn 2048
@@ -33,7 +52,8 @@ frontend http_in
   redirect scheme https code 301 if !{ ssl_fc }
 
 frontend https_in
-  bind *:443 ssl crt /etc/haproxy/certs/
+  # Use dummy PEM during AMI build to prevent startup failure
+  bind *:443 ssl crt /etc/haproxy/certs/dummy.pem
 
   acl is_admin path_beg /admin
   acl is_hugo  path_beg /blog
@@ -53,14 +73,15 @@ backend api_backend
   server api 127.0.0.1:9 check disabled
 
 backend hugo_backend
-  option httpchk GET /
   # Dummy backend for AMI build
-  server hugo_nginx 127.0.0.1:9 check disabled
+  server hugo 127.0.0.1:9 check disabled
 EOF
 
-# Validate config only — DO NOT START haproxy during AMI build
+# Validate HAProxy config (don’t fail AMI build if there’s a warning)
 haproxy -c -f /etc/haproxy/haproxy.cfg || true
 
-# Enable service for runtime, but keep it stopped in AMI
+# Enable HAProxy service to start at runtime, but keep it stopped in AMI
 systemctl enable haproxy
 systemctl stop haproxy || true
+
+echo "=== HAProxy AMI provisioning complete ==="

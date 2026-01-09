@@ -80,7 +80,7 @@ build {
   }
 
   ################################
-  # Post-processors (CORRECT STRUCTURE)
+  # Post-processors
   ################################
   post-processors {
 
@@ -89,12 +89,13 @@ build {
       output = "manifest.json"
     }
 
-    # 2. Extract AMI ID and write to SSM
+    # 2. Extract latest AMI ID and write to SSM
     post-processor "shell-local" {
       inline = [
-        "AMI_ID=$(jq -r '.builds[0].artifact_id' manifest.json | cut -d':' -f2)",
-        "echo \"DEBUG: AMI_ID=$AMI_ID\"",
-        "aws ssm put-parameter --name /devopslab/ami/ops/latest --type String --value \"$AMI_ID\" --overwrite --region ${var.region}"
+        "AMI_ID=$(jq -r '.builds[-1].artifact_id' manifest.json | cut -d':' -f2)",
+        "if [ -z \"$AMI_ID\" ]; then echo 'ERROR: AMI_ID empty' && exit 1; fi",
+        "echo DEBUG: AMI_ID=$AMI_ID",
+        "aws ssm put-parameter --name /devopslab/ami/ops/latest --type String --value \"$AMI_ID\" --overwrite --region ${var.region} || exit 1"
       ]
     }
   }
