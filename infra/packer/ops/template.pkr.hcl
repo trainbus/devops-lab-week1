@@ -43,6 +43,7 @@ source "amazon-ebs" "ops" {
   }
 }
 
+
 ############################
 # Build
 ############################
@@ -51,31 +52,30 @@ build {
   sources = ["source.amazon-ebs.ops"]
 
   ################################
-  # Provisioning
+  # File provisioning (early)
+  ################################
+  provisioner "file" {
+    source      = "systemd"
+    destination = "/tmp/systemd"
+  }
+
+
+
+  ################################
+  # Shell provisioning
   ################################
   provisioner "shell" {
     execute_command = "sudo -E bash '{{ .Path }}'"
     scripts = [
-      "scripts/base.sh",
-      "scripts/docker.sh",
-      "scripts/haproxy.sh",
-      "scripts/hugo.sh",
-      "scripts/systemd.sh"
-    ]
-  }
-
-  ################################
-  # TLS Bootstrap Script
-  ################################
-  provisioner "file" {
-    source      = "scripts/bootstrap-tls.sh"
-    destination = "/tmp/bootstrap-tls.sh"
-  }
-
-  provisioner "shell" {
-    inline = [
-      "sudo mv /tmp/bootstrap-tls.sh /usr/local/bin/bootstrap-tls.sh",
-      "sudo chmod 755 /usr/local/bin/bootstrap-tls.sh"
+    "scripts/install_base.sh",
+    "scripts/docker.sh",
+    "scripts/hugo.sh",
+    "scripts/install_haproxy.sh",
+    "scripts/install_certbot.sh",
+    "scripts/install_dummy_cert.sh",
+    "scripts/install_renew_hook.sh",
+    "scripts/enable_services.sh",
+    "scripts/systemd.sh"
     ]
   }
 
@@ -83,20 +83,18 @@ build {
   # Post-processors
   ################################
   post-processors {
-
-    # 1. Write manifest file containing AMI ID
     post-processor "manifest" {
       output = "manifest.json"
     }
 
-    # 2. Extract latest AMI ID and write to SSM
     post-processor "shell-local" {
       inline = [
         "AMI_ID=$(jq -r '.builds[-1].artifact_id' manifest.json | cut -d':' -f2)",
         "if [ -z \"$AMI_ID\" ]; then echo 'ERROR: AMI_ID empty' && exit 1; fi",
         "echo DEBUG: AMI_ID=$AMI_ID",
-        "aws ssm put-parameter --name /devopslab/ami/ops/latest --type String --value \"$AMI_ID\" --overwrite --region ${var.region} || exit 1"
+        "aws ssm put-parameter --name /devopslab/ami/ops/latest --type String --value \"$AMI_ID\" --overwrite --region ${var.region}"
       ]
     }
   }
 }
+

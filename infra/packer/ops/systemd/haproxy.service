@@ -1,0 +1,14 @@
+[Unit]
+Description=HAProxy Load Balancer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/sbin/haproxy -W -db -f /etc/haproxy/haproxy.cfg
+ExecReload=/bin/kill -USR2 $MAINPID
+Restart=always
+RestartSec=2
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

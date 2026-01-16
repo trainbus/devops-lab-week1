@@ -1,0 +1,12 @@
+[Unit]
+Description=Renew TLS Certificates
+
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=12h
+Persistent=true
+Unit=certbot.service
+
+[Install]
+WantedBy=timers.target
