@@ -1,0 +1,57 @@
+name: Admin UI CI/CD
+
+on:
+  push:
+    branches: [ "main", "prod" ]
+    paths:
+      - "admin-ui/**"
+  workflow_dispatch:
+
+env:
+  ECR_REPO: devops-lab-admin-ui   # you can override with repository secret if desired
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps & Build
+        working-directory: .
+        run: |
+          cd admin-ui || exit 1
+          npm ci
+          npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build & push image
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          IMAGE_TAG=admin-ui-$(date +'%Y%m%d-%H%M%S')
+          REPO=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${{ env.ECR_REPO }}
+          cd admin-ui
+          # build a small nginx image containing the built files
+          docker build -t ${REPO}:${IMAGE_TAG} -f Dockerfile .
+          docker tag ${REPO}:${IMAGE_TAG} ${REPO}:latest
+          docker push ${REPO}:${IMAGE_TAG}
+          docker push ${REPO}:latest
+
+      - name: Set IMAGE_TAG (for possible downstream steps)
+        run: echo "IMAGE_TAG=admin-ui-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV

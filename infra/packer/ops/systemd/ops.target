@@ -1,0 +1,7 @@
+[Unit]
+Description=Ops Stack Entry Point
+Wants=bootstrap.service
+After=network-online.target
+
+[Install]
+WantedBy=multi-user.target

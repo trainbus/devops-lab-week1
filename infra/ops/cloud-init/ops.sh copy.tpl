@@ -1,25 +1,22 @@
-set -euxo pipefail
+#!/bin/bash
+set -eux
 
-echo ">>> Installing base packages"
+echo ">>> Installing dependencies..."
 apt-get update -y
 apt-get install -y \
   haproxy \
   certbot \
+  python3-certbot-nginx \
+  awscli \
   jq \
   docker.io \
-  unzip \
-  ca-certificates \
-  curl
+  docker-compose-plugin
 
-echo ">>> Installing AWS CLI v2"
-curl -sSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
-unzip -q awscliv2.zip
-./aws/install
-
-echo ">>> Enabling Docker"
+echo ">>> Enable Docker..."
 systemctl enable --now docker
-usermod -aG docker ubuntu || true
 
+echo ">>> Adding ubuntu to docker group..."
+usermod -aG docker ubuntu || true
 
 echo ">>> Fetching service endpoints from SSM..."
 
@@ -27,27 +24,24 @@ NODE_API_URL=$(aws ssm get-parameter \
   --name "/ops/node_api" \
   --query "Parameter.Value" \
   --output text \
-  --region ${aws_region})
-
-export NODE_API_IP
+  --region ${AWS_REGION})
 
 ADMIN_UI_URL=$(aws ssm get-parameter \
   --name "/ops/admin_ui" \
   --query "Parameter.Value" \
   --output text \
-  --region ${aws_region})
+  --region ${AWS_REGION})
 
 HUGO_URL=$(aws ssm get-parameter \
   --name "/ops/hugo" \
   --query "Parameter.Value" \
   --output text \
-  --region ${aws_region})
+  --region ${AWS_REGION})
 
 echo ">>> Writing HAProxy config..."
 cat >/etc/haproxy/haproxy.cfg <<EOF
 global
   log /dev/log local0
-  maxconn 2048
   user haproxy
   group haproxy
   daemon
@@ -55,38 +49,33 @@ global
 defaults
   log global
   mode http
-  option httplog
-  timeout connect 5000
-  timeout client  50000
-  timeout server  50000
+  timeout client 50s
+  timeout server 50s
+  timeout connect 5s
 
-frontend http_in
+frontend fe_main
   bind *:80
-  redirect scheme https code 301 if !{ ssl_fc }
+  bind *:443 ssl crt /etc/letsencrypt/live/${domain}/fullchain.pem key /etc/letsencrypt/live/${domain}/privkey.pem
 
-frontend https_in
-  bind *:443 ssl crt /etc/letsencrypt/live/onwuachi.com/fullchain.pem
-  acl is_admin path_beg /admin
-  acl is_hugo  path_beg /blog
-  acl is_api   path_beg /api
+  acl is_admin_ui path_beg /admin
+  acl is_hugo path_beg /blog
+  acl is_node path_beg /api
 
-  use_backend admin_backend if is_admin
-  use_backend hugo_backend  if is_hugo
-  use_backend api_backend   if is_api
-  default_backend hugo_backend
+  use_backend be_admin_ui if is_admin_ui
+  use_backend be_hugo if is_hugo
+  use_backend be_node if is_node
 
-backend admin_backend
-  server admin localhost:8080 check
+backend be_admin_ui
+  server adminui ${ADMIN_UI_URL}:8080 check
 
-backend hugo_backend
-  server hugo  localhost:1313 check
+backend be_hugo
+  server hugo ${HUGO_URL}:1313 check
 
-backend api_backend
-  server api 10.50.1.78:3000 check
+backend be_node
+  server node ${NODE_API_URL}:3000 check
 EOF
 
 echo ">>> Restarting HAProxy..."
-envsubst < /etc/haproxy/haproxy.cfg.template > /etc/haproxy/haproxy.cfg
 systemctl restart haproxy
 systemctl enable haproxy
 
@@ -109,25 +98,25 @@ cat >/home/ubuntu/compose/docker-compose.yml <<EOF
 version: "3.8"
 services:
   admin_ui:
-    image: ${aws_account_id}.dkr.ecr.${aws_region}.amazonaws.com/devops-lab-admin-ui:latest
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/devops-lab-admin-ui:latest
     restart: unless-stopped
     ports:
       - "8080:80"
 
   hugo:
-    image: ${aws_account_id}.dkr.ecr.${aws_region}.amazonaws.com/devops-lab-hugo:latest
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/devops-lab-hugo:latest
     restart: unless-stopped
     ports:
       - "1313:80"
 EOF
 
 echo ">>> Logging into ECR..."
-aws ecr get-login-password --region ${aws_region} \
-  | docker login --username AWS --password-stdin ${aws_account_id}.dkr.ecr.${aws_region}.amazonaws.com
+aws ecr get-login-password --region ${AWS_REGION} \
+  | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
 
 echo ">>> Pulling and starting containers..."
-docker-compose -f /home/ubuntu/compose/docker-compose.yml pull
-docker-compose -f /home/ubuntu/compose/docker-compose.yml up -d
+docker compose -f /home/ubuntu/compose/docker-compose.yml pull
+docker compose -f /home/ubuntu/compose/docker-compose.yml up -d
 
 echo ">>> OPS HOST READY."
 
@@ -148,20 +137,20 @@ runcmd:
 version: "3.8"
 services:
   admin:
-    image: ${aws_account_id}.dkr.ecr.${aws_region}.amazonaws.com/devops-lab-admin-ui:latest
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/devops-lab-admin-ui:latest
     container_name: admin
     restart: unless-stopped
     ports:
       - "8080:80"
 
   hugo:
-    image: ${aws_account_id}.dkr.ecr.${aws_region}.amazonaws.com/devops-lab-hugo:latest
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/devops-lab-hugo:latest
     container_name: hugo
     restart: unless-stopped
     ports:
       - "1313:1313"
 EOF
 
-  - /usr/bin/aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${aws_account_id}.dkr.ecr.${aws_region}.amazonaws.com
+  - /usr/bin/aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
   - docker compose -f /home/ubuntu/compose/docker-compose.yml pull
   - docker compose -f /home/ubuntu/compose/docker-compose.yml up -d

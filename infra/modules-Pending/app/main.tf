@@ -9,6 +9,6 @@ resource "aws_instance" "app" {
   key_name               = var.key_name
   iam_instance_profile   = var.iam_instance_profile
   vpc_security_group_ids = var.security_group_ids
-  tags = { Name = var.ec2_name }
+  tags                   = { Name = var.ec2_name }
 }
 

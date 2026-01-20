@@ -1,40 +1,55 @@
-variable "key_name" {
-  type        = string
-}
-
 variable "subnet_id" {
-  type        = string
-}
-
-variable "vpc_id" {
-  type        = string
-}
-
-variable "ec2_name" {
-  type        = string
-}
-
-variable "admin_ip" {
-  type        = string
+  type = string
 }
 
 variable "ops_sg_id" {
-  type        = string
+  type = string
 }
 
 variable "iam_instance_profile" {
-  type        = string
+  type = string
 }
 
-# Cross-module inputs
+variable "key_name" {
+  type = string
+}
+
+variable "ec2_name" {
+  type = string
+}
+
+variable "instance_type" {
+  type    = string
+  default = "t3.micro"
+}
+
+# App backend IPs passed in from root
 variable "admin_ui_ip" {
-  type        = string
+  type = string
 }
 
 variable "wordpress_ip" {
-  type        = string
+  type = string
 }
 
 variable "node_app_ip" {
-  type        = string
+  type = string
 }
+
+# DNS
+variable "domain" {
+  type = string
+}
+
+variable "root_domain" {
+  type = string
+}
+
+variable "aws_region" {
+  type = string
+}
+
+variable "aws_account_id" {
+  type = string
+}
+

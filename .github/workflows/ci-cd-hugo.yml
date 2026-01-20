@@ -1,0 +1,45 @@
+name: Hugo CI/CD
+
+on:
+  push:
+    branches: [ "main", "prod", "trip" ]
+    paths:
+      - "hugo/**"
+  workflow_dispatch:
+
+env:
+  ECR_REPO: devops-lab-hugo
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Hugo site & image
+        run: |
+          cd hugo || exit 1
+          docker build -t hugo-temp:local -f Dockerfile .
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Tag & Push
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          TAG=hugo-$(date +'%Y%m%d-%H%M%S')
+          REPO=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${{ env.ECR_REPO }}
+          docker tag hugo-temp:local ${REPO}:${TAG}
+          docker tag hugo-temp:local ${REPO}:latest
+          docker push ${REPO}:${TAG}
+          docker push ${REPO}:latest
