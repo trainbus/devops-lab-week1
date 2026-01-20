@@ -17,7 +17,7 @@ resource "aws_instance" "ops" {
   key_name                    = var.key_name
   associate_public_ip_address = true
 
-  user_data = <<-EOF
+  user_data = <<-EOT
 #!/bin/bash
 set -euo pipefail
 
@@ -27,60 +27,46 @@ exec > >(tee -a "$LOG") 2>&1
 echo "=== OPS bootstrap start ==="
 
 ################################
-# Wait for IAM
+# Stop HAProxy (standalone needs :80)
 ################################
-for i in {1..24}; do
-  aws sts get-caller-identity --region us-east-1 >/dev/null 2>&1 && break
-  sleep 5
-done
+systemctl stop haproxy || true
 
 ################################
-# Start HAProxy (already safe)
+# Wait for DNS / network
 ################################
-systemctl enable haproxy
-systemctl start haproxy
+sleep 10
 
 ################################
-# One-time cert issuance
+# One-time cert issuance (standalone)
 ################################
 if [ ! -f /etc/letsencrypt/live/onwuachi.com/fullchain.pem ]; then
   certbot certonly \
+    --standalone \
     --non-interactive \
     --agree-tos \
     --email admin@onwuachi.com \
-    --webroot \
-    -w /var/www/certbot \
     -d onwuachi.com \
     -d www.onwuachi.com
 fi
 
 ################################
-# Install deploy hook
+# Build HAProxy PEM (atomic)
 ################################
-cat >/etc/letsencrypt/renewal-hooks/deploy/haproxy <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
+cat \
+  /etc/letsencrypt/live/onwuachi.com/fullchain.pem \
+  /etc/letsencrypt/live/onwuachi.com/privkey.pem \
+  > /etc/haproxy/certs/onwuachi.com.pem
 
-DOMAIN="onwuachi.com"
-LIVE="/etc/letsencrypt/live/$DOMAIN"
-DEST="/etc/haproxy/certs/$DOMAIN.pem"
-
-cat "$LIVE/fullchain.pem" "$LIVE/privkey.pem" > "$DEST"
-chmod 600 "$DEST"
-systemctl reload haproxy
-EOF
-
-chmod 755 /etc/letsencrypt/renewal-hooks/deploy/haproxy
+chmod 600 /etc/haproxy/certs/onwuachi.com.pem
 
 ################################
-# Enable certbot.timer
+# Validate & start HAProxy
 ################################
-systemctl enable certbot.timer
-systemctl start certbot.timer
+haproxy -c -f /etc/haproxy/haproxy.cfg
+systemctl start haproxy
 
 echo "=== OPS bootstrap complete ==="
-
-EOF
+EOT
 
   user_data_replace_on_change = true
 

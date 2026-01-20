@@ -68,16 +68,32 @@ build {
     execute_command = "sudo -E bash '{{ .Path }}'"
     scripts = [
     "scripts/install_base.sh",
-    "scripts/docker.sh",
-    "scripts/hugo.sh",
-    "scripts/install_haproxy.sh",
-    "scripts/install_certbot.sh",
+    "scripts/install_haproxy.sh",    
     "scripts/install_dummy_cert.sh",
-    "scripts/install_renew_hook.sh",
+    "scripts/install_certbot.sh",
+    "scripts/install_renew_hook.sh",    
+    "scripts/systemd.sh",
     "scripts/enable_services.sh",
-    "scripts/systemd.sh"
+    "scripts/docker.sh"
     ]
   }
+
+################################
+# Upload hugo.sh safely
+################################
+provisioner "file" {
+  source      = "scripts/hugo.sh"
+  destination = "/tmp/hugo.sh"
+}
+
+provisioner "shell" {
+  inline = [
+    "sudo mkdir -p /opt/scripts",
+    "sudo mv /tmp/hugo.sh /opt/scripts/hugo.sh",
+    "sudo chmod +x /opt/scripts/hugo.sh"
+  ]
+}
+
 
   ################################
   # Post-processors

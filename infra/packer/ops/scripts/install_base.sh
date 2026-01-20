@@ -2,6 +2,12 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
+echo "=== DEBUG: sources.list ==="
+cat /etc/apt/sources.list || true
+echo "=== DEBUG: sources.list.d ==="
+ls -la /etc/apt/sources.list.d || true
+
+
 apt-get update
 apt-get install -y \
   ca-certificates \

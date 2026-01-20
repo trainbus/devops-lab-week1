@@ -1,16 +1,20 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -e
 
-mkdir -p /etc/haproxy/certs
+DOMAIN="onwuachi.com"
+CERT_DIR="/etc/haproxy/certs"
+CERT_FILE="$CERT_DIR/$DOMAIN.pem"
 
-openssl req -x509 -nodes -days 3650 \
-  -newkey rsa:2048 \
-  -subj "/CN=localhost" \
-  -keyout /etc/haproxy/certs/dummy.key \
-  -out /etc/haproxy/certs/dummy.crt
+mkdir -p "$CERT_DIR"
 
-cat /etc/haproxy/certs/dummy.crt \
-    /etc/haproxy/certs/dummy.key \
-    > /etc/haproxy/certs/dummy.pem
+openssl req -x509 -newkey rsa:2048 -nodes \
+  -keyout /tmp/key.pem \
+  -out /tmp/cert.pem \
+  -days 365 \
+  -subj "/CN=$DOMAIN"
 
-chmod 600 /etc/haproxy/certs/dummy.pem
+cat /tmp/cert.pem /tmp/key.pem > "$CERT_FILE"
+chmod 600 "$CERT_FILE"
+
+# NOW validation is safe (haproxy is installed, config exists, cert exists)
+haproxy -c -f /etc/haproxy/haproxy.cfg

@@ -2,28 +2,19 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
-echo "=== Installing HAProxy (AMI build) ==="
+echo "=== Installing HAProxy (AMI-safe) ==="
 
-# Install HAProxy
 apt-get update
-apt-get install -y haproxy certbot python3  
+apt-get install -y haproxy certbot python3
 
-# Ensure cert directory exists
+mkdir -p /etc/haproxy
 mkdir -p /etc/haproxy/certs
-chmod 755 /etc/haproxy/certs
 
-
-
-# Write a safe HAProxy config for AMI build
-cat <<'EOF' > /etc/haproxy/haproxy.cfg
+cat <<'EOF' >/etc/haproxy/haproxy.cfg
 global
   daemon
   maxconn 2048
   log /dev/log local0
-
-  ssl-default-bind-options no-sslv3 no-tlsv10 no-tlsv11
-  ssl-default-bind-ciphers ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384
-  ssl-default-bind-ciphersuites TLS_AES_256_GCM-SHA384:TLS_AES_128_GCM_SHA256
 
 defaults
   mode http
@@ -35,35 +26,19 @@ defaults
 
 frontend http_in
   bind *:80
-
-  acl acme_challenge path_beg /.well-known/acme-challenge/
-  http-request redirect scheme https unless acme_challenge
-  use_backend acme_backend if acme_challenge
+  http-request redirect scheme https code 301
 
 frontend https_in
-  bind *:443 ssl crt /etc/haproxy/certs/
-
+  bind *:443 ssl crt /etc/haproxy/certs/onwuachi.com.pem
   default_backend dummy_backend
 
-backend acme_backend
-  server local_acme 127.0.0.1:8085
-
 backend dummy_backend
-  http-request return status 503 content-type text/plain lf-string "Service warming up"
-  
+  http-request return status 503 content-type text/plain lf-string "Service warming up... Platform engineering takes time."
 EOF
 
-# Validate HAProxy config (don’t fail AMI build if there’s a warning)
-haproxy -c -f /etc/haproxy/haproxy.cfg || true
-
-# Enable HAProxy service to start at runtime, but keep it stopped in AMI
+# Enable only (runtime start)
 systemctl enable haproxy
 systemctl stop haproxy || true
 
-
-# Remove legacy HAProxy docker dependency override
-rm -rf /etc/systemd/system/haproxy.service.d
-
-systemctl daemon-reload
-
 echo "=== HAProxy AMI provisioning complete ==="
+
