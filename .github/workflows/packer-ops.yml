@@ -21,7 +21,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/github-actions-packer
+          role-to-assume: arn:aws:iam::046685909731:oidc-provider/token.actions.githubusercontent.com
           aws-region: us-east-1
 
       - name: Setup Packer
