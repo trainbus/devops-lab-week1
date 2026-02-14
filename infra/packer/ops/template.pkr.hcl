@@ -20,6 +20,11 @@ variable "ami_name" {
   default = "ops-haproxy-static-nginx-hugo"
 }
 
+variable "ami_keep_last" {
+  type    = number
+  default = 2
+}
+
 ############################
 # Source AMI
 ############################
@@ -29,7 +34,9 @@ source "amazon-ebs" "ops" {
   ssh_username                = "ubuntu"
   associate_public_ip_address = true
 
-  ami_name = "${var.ami_name}-{{timestamp}}"
+  ami_name        = "${var.ami_name}-{{timestamp}}"
+  force_deregister = true
+  force_delete_snapshot = true
 
   source_ami_filter {
     filters = {
@@ -43,7 +50,6 @@ source "amazon-ebs" "ops" {
   }
 }
 
-
 ############################
 # Build
 ############################
@@ -52,14 +58,12 @@ build {
   sources = ["source.amazon-ebs.ops"]
 
   ################################
-  # File provisioning (early)
+  # File provisioning
   ################################
   provisioner "file" {
     source      = "systemd"
     destination = "/tmp/systemd"
   }
-
-
 
   ################################
   # Shell provisioning
@@ -67,50 +71,71 @@ build {
   provisioner "shell" {
     execute_command = "sudo -E bash '{{ .Path }}'"
     scripts = [
-    "scripts/install_base.sh",
-    "scripts/install_haproxy.sh",    
-    "scripts/install_dummy_cert.sh",
-    "scripts/install_certbot.sh",
-    "scripts/install_renew_hook.sh",    
-    "scripts/systemd.sh",
-    "scripts/enable_services.sh",
-    "scripts/docker.sh"
+      "scripts/install_base.sh",
+      "scripts/install_haproxy.sh",
+      "scripts/install_dummy_cert.sh",
+      "scripts/install_certbot.sh",
+      "scripts/install_renew_hook.sh",
+      "scripts/systemd.sh",
+      "scripts/docker.sh"
     ]
   }
 
-################################
-# Upload hugo.sh safely
-################################
-provisioner "file" {
-  source      = "scripts/hugo.sh"
-  destination = "/tmp/hugo.sh"
-}
+  ################################
+  # Hugo Script
+  ################################
+  provisioner "file" {
+    source      = "scripts/hugo.sh"
+    destination = "/tmp/hugo.sh"
+  }
 
-provisioner "shell" {
-  inline = [
-    "sudo mkdir -p /opt/scripts",
-    "sudo mv /tmp/hugo.sh /opt/scripts/hugo.sh",
-    "sudo chmod +x /opt/scripts/hugo.sh"
-  ]
-}
-
+  provisioner "shell" {
+    inline = [
+      "sudo mkdir -p /opt/scripts",
+      "sudo mv /tmp/hugo.sh /opt/scripts/hugo.sh",
+      "sudo chmod +x /opt/scripts/hugo.sh"
+    ]
+  }
 
   ################################
-  # Post-processors
+  # Post-Processors
   ################################
   post-processors {
+
     post-processor "manifest" {
       output = "manifest.json"
     }
 
+    # Update SSM with latest AMI
     post-processor "shell-local" {
       inline = [
         "AMI_ID=$(jq -r '.builds[-1].artifact_id' manifest.json | cut -d':' -f2)",
         "if [ -z \"$AMI_ID\" ]; then echo 'ERROR: AMI_ID empty' && exit 1; fi",
-        "echo DEBUG: AMI_ID=$AMI_ID",
+        "echo 'New AMI:' $AMI_ID",
         "aws ssm put-parameter --name /devopslab/ami/ops/latest --type String --value \"$AMI_ID\" --overwrite --region ${var.region}"
+      ]
+    }
+
+    # 🔥 Automatic AMI Cleanup
+    post-processor "shell-local" {
+      inline = [
+        "echo 'Pruning old AMIs...'",
+        "AMI_LIST=$(aws ec2 describe-images --owners self --region ${var.region} --filters Name=name,Values='${var.ami_name}-*' --query 'Images | sort_by(@,&CreationDate)[].ImageId' --output text)",
+        "AMI_COUNT=$(echo \"$AMI_LIST\" | wc -w)",
+        "KEEP=${var.ami_keep_last}",
+        "DELETE_COUNT=$((AMI_COUNT-KEEP))",
+        "if [ \"$DELETE_COUNT\" -le 0 ]; then echo 'Nothing to prune'; exit 0; fi",
+        "OLD_AMIS=$(echo \"$AMI_LIST\" | awk '{for(i=1;i<=NF-'$KEEP';i++) printf $i\" \"}')",
+        "for AMI in $OLD_AMIS; do",
+        "  echo 'Deregistering' $AMI",
+        "  SNAPSHOT_ID=$(aws ec2 describe-images --image-ids $AMI --region ${var.region} --query 'Images[0].BlockDeviceMappings[0].Ebs.SnapshotId' --output text)",
+        "  aws ec2 deregister-image --image-id $AMI --region ${var.region}",
+        "  if [ \"$SNAPSHOT_ID\" != \"None\" ]; then",
+        "    echo 'Deleting snapshot' $SNAPSHOT_ID",
+        "    aws ec2 delete-snapshot --snapshot-id $SNAPSHOT_ID --region ${var.region}",
+        "  fi",
+        "done"
       ]
     }
   }
 }
-
