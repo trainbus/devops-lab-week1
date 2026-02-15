@@ -59,3 +59,31 @@ variable "iam_instance_profile" {
   description = "IAM instance profile name"
   type        = string
 }
+
+
+
+variable "enable_node_api" {
+  description = "Enable Node API EC2 instance"
+  type        = bool
+  default     = false
+}
+
+variable "enable_web" {
+  type    = bool
+  default = false
+}
+
+variable "enable_wordpress" {
+  type    = bool
+  default = false
+}
+
+variable "enable_admin_ui" {
+  type    = bool
+  default = false
+}
+
+variable "enable_secrets_manager" {
+  type = bool
+  default = false
+}

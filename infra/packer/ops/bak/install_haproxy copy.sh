@@ -30,12 +30,6 @@ frontend http_in
 
 frontend https_in
   bind *:443 ssl crt /etc/haproxy/certs/onwuachi.com.pem
-
-  acl is_api path_beg /api
-  acl is_ready path /ready
-
-  use_backend platform_api if is_api or is_ready
-
   default_backend dummy_backend
 
 

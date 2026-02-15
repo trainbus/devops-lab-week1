@@ -1,7 +1,7 @@
 [Unit]
 Description=Ops Stack Entry Point
-Wants=bootstrap.service
-After=network-online.target
+Wants=platform-api.service hugo.service haproxy.service
+After=platform-api.service hugo.service
 
 [Install]
 WantedBy=multi-user.target

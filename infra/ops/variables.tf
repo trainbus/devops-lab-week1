@@ -53,3 +53,6 @@ variable "aws_account_id" {
   type = string
 }
 
+variable "image_tag" {
+  type = string
+}
