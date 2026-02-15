@@ -39,7 +39,9 @@ sleep 10
 ################################
 # One-time cert issuance (standalone)
 ################################
-if [ ! -f /etc/letsencrypt/live/onwuachi.com/fullchain.pem ]; then
+if [ ! -d /etc/letsencrypt/live/onwuachi.com ]; then
+  systemctl stop haproxy || true
+
   certbot certonly \
     --standalone \
     --non-interactive \
@@ -47,7 +49,10 @@ if [ ! -f /etc/letsencrypt/live/onwuachi.com/fullchain.pem ]; then
     --email admin@onwuachi.com \
     -d onwuachi.com \
     -d www.onwuachi.com
+
+  systemctl start haproxy
 fi
+
 
 ################################
 # Build HAProxy PEM (atomic)
@@ -58,6 +63,27 @@ cat \
   > /etc/haproxy/certs/onwuachi.com.pem
 
 chmod 600 /etc/haproxy/certs/onwuachi.com.pem
+
+################################
+# Platform API runtime config
+################################
+mkdir -p /etc/platform
+
+cat >/etc/platform/api.env <<EOF
+IMAGE_URI=${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/api:latest
+PORT=3000
+NODE_ENV=production
+EOF
+
+aws ecr get-login-password --region ${var.aws_region} \
+ | docker login --username AWS --password-stdin \
+   ${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com
+
+systemctl daemon-reexec
+systemctl start ops.target
+
+
+
 
 ################################
 # Validate & start HAProxy

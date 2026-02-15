@@ -14,4 +14,4 @@ ExecStop=/usr/bin/docker stop hugo
 Restart=always
 
 [Install]
-WantedBy=bootstrap.service
+WantedBy=ops.target

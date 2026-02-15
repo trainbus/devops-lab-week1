@@ -1,0 +1,32 @@
+name: Hugo CI
+
+on:
+  push:
+    paths:
+      - "apps/hugo/**"
+      - "scripts/build-hugo.sh"
+  pull_request:
+
+jobs:
+  build-hugo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Hugo
+        run: |
+          sudo apt update
+          sudo apt install -y hugo
+
+      - name: Build Hugo site
+        run: |
+          chmod +x scripts/build-hugo.sh
+          scripts/build-hugo.sh
+
+      - name: Build Docker image
+        run: |
+          cd apps/hugo/site
+          docker build -t hugo-ci-test .
+
