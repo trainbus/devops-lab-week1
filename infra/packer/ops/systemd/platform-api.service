@@ -1,7 +1,7 @@
 [Unit]
 Description=Platform API
-After=network-online.target docker.service
 Wants=network-online.target
+After=network-online.target docker.service
 Requires=docker.service
 StartLimitIntervalSec=60
 StartLimitBurst=3
@@ -24,7 +24,6 @@ ExecStartPre=/usr/bin/docker pull ${IMAGE_URI}
 
 ExecStart=/usr/bin/docker run \
   --name platform-api \
-  --rm \
   -p 127.0.0.1:${PORT}:3000 \
   -e NODE_ENV=${NODE_ENV} \
   ${IMAGE_URI}

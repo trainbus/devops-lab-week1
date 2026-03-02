@@ -36,7 +36,8 @@ frontend https_in
 
   use_backend platform_api if is_api or is_ready
 
-  default_backend dummy_backend
+  #default_backend dummy_backend
+  default_backend hugo_backend
 
 
 backend dummy_backend
@@ -48,8 +49,10 @@ backend platform_api
     http-check expect status 200
 
     default-server inter 5s fall 2 rise 2
-
     server api1 127.0.0.1:3000 check
+
+backend hugo_backend
+  server hugo1 127.0.0.1:8080 check
 
 EOF
 

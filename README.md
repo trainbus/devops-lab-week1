@@ -40,7 +40,7 @@ Eliminate manual server mutation
 
 Enable controlled phased evolution
 
-🧱 Current Architecture (Phase 2)
+🧱 Current Architecture (Phase  3)
                 Internet
                     │
                     ▼
@@ -247,15 +247,103 @@ Budget alerts
 
 📌 Status
 
-Current Phase: 2 – Containerized Runtime Stable
+
+tatus
+Current Phase: 3 – Edge Routing Hardening Stable
+
+Tag:
+phase-3-edge-observability-stable
 
 Branch:
+main
 
-phase-2-app-backends
+------------------------------------------
+✅ Phase 3 – Edge Routing Hardening & Immutable Replacement Validation
 
-Upcoming tag:
+Tag: phase-3-edge-observability-stable
+Closed: March 2026
 
-phase-2-infra-stable
+Objective
+
+Harden HAProxy multi-backend routing and validate full immutable infrastructure replacement without manual mutation.
+
+What Changed
+HAProxy Routing Correction
+
+Removed duplicate default_backend
+
+Defined deterministic routing model:
+
+/api     → platform_api
+/ready   → platform_api
+/        → hugo_backend
+
+Principle reinforced:
+
+HAProxy configuration belongs in the AMI, not in user_data.
+
+Full Immutable Replacement Cycle
+
+Executed clean rebuild flow:
+
+Packer build
+→ AMI stored in SSM
+→ Terraform apply
+→ EC2 destroyed
+→ EC2 recreated
+→ EIP reattached
+
+Terraform confirmed:
+
+2 destroyed
+2 added
+
+No in-place modification. No SSH patching.
+
+Runtime Hardening
+
+systemd restart policies validated
+
+ECR login pipe wrapped correctly with /bin/sh -c
+
+Health checks enforced
+
+ops.target grouping stabilized
+
+Public Surface Area
+
+Only exposed ports:
+
+80
+443
+
+All containers remain bound to 127.0.0.1.
+
+TLS automated via Certbot + renewal hook.
+
+Status After Phase 3
+
+Hugo returns 200
+
+API health routing validated
+
+TLS valid
+
+Immutable rebuild confirmed
+
+Deferred to Phase 4
+
+Prometheus
+
+Grafana
+
+Private observability node
+
+Cost-based stop/start workflows
+
+Alerting
+
+------------------------------------------
 👤 Author
 
 Derrick C. Onwuachi
