@@ -17,7 +17,7 @@ variable "region" {
 
 variable "ami_name" {
   type    = string
-  default = "ops-haproxy-static-nginx-hugo"
+  default = "ops-platform-observability"
 }
 
 variable "ami_keep_last" {
@@ -72,30 +72,102 @@ build {
     execute_command = "sudo -E bash '{{ .Path }}'"
     scripts = [
       "scripts/install_base.sh",
+      "scripts/install_swap.sh",
       "scripts/install_haproxy.sh",
       "scripts/install_dummy_cert.sh",
       "scripts/install_certbot.sh",
       "scripts/install_renew_hook.sh",
       "scripts/systemd.sh",
-      "scripts/docker.sh"
+      "scripts/docker.sh",
+      "scripts/hugo.sh"
     ]
   }
 
-  ################################
-  # Hugo Script
-  ################################
-  provisioner "file" {
-    source      = "scripts/hugo.sh"
-    destination = "/tmp/hugo.sh"
-  }
 
-  provisioner "shell" {
-    inline = [
-      "sudo mkdir -p /opt/scripts",
-      "sudo mv /tmp/hugo.sh /opt/scripts/hugo.sh",
-      "sudo chmod +x /opt/scripts/hugo.sh"
-    ]
-  }
+################################
+# Hugo Build (Baked into AMI)
+################################
+#provisioner "shell" {
+#  execute_command = "sudo -E bash '{{ .Path }}'"
+#  script = "scripts/hugo.sh"
+#}
+
+############ Phase 3 – Observability ############
+
+################################
+# Install Node Exporter (host binary)
+################################
+provisioner "shell" {
+  execute_command = "sudo -E bash '{{ .Path }}'"
+  script = "scripts/install_node_exporter.sh"
+}
+
+################################
+# Create Prometheus directories (root-owned)
+################################
+provisioner "shell" {
+  execute_command = "sudo -E bash '{{ .Path }}'"
+  script = "scripts/install_prometheus_dirs.sh"
+}
+
+################################
+# Create Grafana directories
+################################
+provisioner "shell" {
+  execute_command = "sudo -E bash '{{ .Path }}'"
+  script = "scripts/install_grafana_dirs.sh"
+}
+
+################################
+# Upload Prometheus config to /tmp (avoid SCP permission issue)
+################################
+provisioner "file" {
+  source      = "files/prometheus.yml"
+  destination = "/tmp/prometheus.yml"
+}
+
+provisioner "file" {
+  source      = "files/rules"
+  destination = "/tmp/rules"
+}
+
+################################
+# Move Prometheus config into protected directory
+################################
+provisioner "shell" {
+  inline = [
+    "sudo mv /tmp/prometheus.yml /opt/prometheus/prometheus.yml",
+    "sudo mkdir -p /opt/prometheus/rules",
+    "sudo mv /tmp/rules/* /opt/prometheus/rules/",
+    "sudo rm -rf /tmp/rules"
+  ]
+}
+
+################################
+# Upload systemd units (safe location)
+################################
+provisioner "file" {
+  source      = "systemd/node_exporter.service"
+  destination = "/tmp/node_exporter.service"
+}
+
+provisioner "file" {
+  source      = "systemd/prometheus.service"
+  destination = "/tmp/prometheus.service"
+}
+
+################################
+# Move systemd units into place
+################################
+provisioner "shell" {
+  inline = [
+    "sudo mv /tmp/node_exporter.service /etc/systemd/system/node_exporter.service",
+    "sudo mv /tmp/prometheus.service /etc/systemd/system/prometheus.service",
+    "sudo systemctl daemon-reload",
+    "sudo systemctl enable node_exporter.service",
+    "sudo systemctl enable prometheus.service"
+  ]
+}
 
   ################################
   # Post-Processors

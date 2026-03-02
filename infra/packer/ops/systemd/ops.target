@@ -1,6 +1,6 @@
 [Unit]
 Description=Ops Stack Entry Point
-Wants=platform-api.service hugo.service haproxy.service
+Wants=platform-api.service hugo.service prometheus.service grafana.service haproxy.service
 After=platform-api.service hugo.service
 
 [Install]

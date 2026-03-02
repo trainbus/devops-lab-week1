@@ -17,12 +17,68 @@ resource "aws_instance" "ops" {
   key_name                    = var.key_name
   associate_public_ip_address = true
 
+  ################################
+  # Root Volume
+  ################################
+  root_block_device {
+    volume_size           = 10
+    volume_type           = "gp3"
+    delete_on_termination = true
+    encrypted             = true
+  }
+
+  ################################
+  # Prometheus Data Volume
+  ################################
+  ebs_block_device {
+    device_name           = "/dev/sdf"
+    volume_size           = 15
+    volume_type           = "gp3"
+    delete_on_termination = true
+    encrypted             = true
+  }
+
+  ################################
+  # User Data
+  ################################
   user_data = <<-EOT
 #!/bin/bash
 set -euo pipefail
 
 LOG=/var/log/ops-user-data.log
 exec > >(tee -a "$LOG") 2>&1
+
+################################
+# Setup/Attach Prometheus Data Volume
+################################
+
+DEVICE="/dev/nvme1n1"
+MOUNT_POINT="/opt/prometheus/data"
+
+for i in {1..10}; do
+  if lsblk | grep -q nvme1n1; then
+    break
+  fi
+  echo "Waiting for data volume..."
+  sleep 3
+done
+
+if ! blkid $DEVICE; then
+  echo "Formatting Prometheus data volume..."
+  mkfs.xfs $DEVICE
+fi
+
+mkdir -p $MOUNT_POINT
+
+if ! grep -q "$MOUNT_POINT" /etc/fstab; then
+  UUID=$(blkid -s UUID -o value $DEVICE)
+  echo "UUID=$UUID  $MOUNT_POINT  xfs  defaults,nofail  0  2" >> /etc/fstab
+fi
+
+mount -a
+chown -R 65534:65534 $MOUNT_POINT
+
+######
 
 echo "=== OPS bootstrap start ==="
 
@@ -35,6 +91,7 @@ systemctl stop haproxy || true
 # Wait for DNS / network
 ################################
 sleep 10
+
 
 ################################
 # One-time cert issuance (standalone)
@@ -82,15 +139,13 @@ aws ecr get-login-password --region ${var.aws_region} \
 systemctl daemon-reexec
 systemctl start ops.target
 
-
-
-
 ################################
 # Validate & start HAProxy
 ################################
 haproxy -c -f /etc/haproxy/haproxy.cfg
 systemctl start haproxy
 
+########
 echo "=== OPS bootstrap complete ==="
 EOT
 
